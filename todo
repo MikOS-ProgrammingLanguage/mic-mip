@@ -4,15 +4,11 @@
 - Preprocessor
 
 === Done ===
-- Lexer
+    Lexer
+    Parser.Structs
+    Parser.Estructs
+    Parser.Assignement
 
 
 == Parser ==
 - everything
-
-
-
-
-
-=== Structs ===
-make a function to add struct vars to VARS

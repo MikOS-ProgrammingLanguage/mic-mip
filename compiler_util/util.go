@@ -19,3 +19,13 @@ func StringInMap(a string, list map[string]Node) bool {
 		return false
 	}
 }
+
+// returns true if a given string 'a' is in a given array map 'list'
+func StringInMapArray(a string, list map[string][]Node) bool {
+	_, ok := list[a]
+	if ok {
+		return true
+	} else {
+		return false
+	}
+}

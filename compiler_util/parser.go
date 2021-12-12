@@ -25,15 +25,15 @@ func Parse(Tokens *[]Token, Illegal_names []string) RootNode {
 		if current_token.type_ == TT_ID {
 			res := mkID()
 			//fmt.Println(res)
-			root_node.AddNodeToRoot(res)
+			//fmt.Println(VARS)
+			root_node = root_node.AddNodeToRoot(res)
 		} else if current_token.type_ == TT_DEBUG {
-			root_node.AddNodeToRoot(DebugNode{})
+			root_node = root_node.AddNodeToRoot(DebugNode{})
 		} else {
-			break
+			NewError("ParsingError", "A function decleration, struct decleration, variable assignement or refference was expected but not found", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
 		}
 	}
-
-	return RootNode{}
+	return root_node
 }
 
 /*-------------------Get and increment methods-------------------*/
@@ -66,7 +66,6 @@ func getName() Token {
 	if getToken(1).type_ == TT_DOT && getToken(2).type_ == TT_ID && (!StringInSlice(getToken(2).value, TYPES) && !StringInSlice(getToken(2).value, INSTRUCTIONS) && !StringInSlice(getToken(2).value, CUSTOM_TYPES)) {
 		// iterates through the tokens for as long as it's a continous name with dots like -> hello.type
 		for getToken(1).type_ == TT_DOT && getToken(2).type_ == TT_ID && (!StringInSlice(getToken(2).value, TYPES) && !StringInSlice(getToken(2).value, INSTRUCTIONS) && !StringInSlice(getToken(2).value, CUSTOM_TYPES)) {
-			name_node.value = current_token.value
 			p_advance()
 			name_node.value += "."
 			p_advance()
@@ -75,7 +74,6 @@ func getName() Token {
 	} else if getToken(1).type_ == TT_ARROW && getToken(2).type_ == TT_ID && (!StringInSlice(getToken(2).value, TYPES) && !StringInSlice(getToken(2).value, INSTRUCTIONS) && !StringInSlice(getToken(2).value, CUSTOM_TYPES)) {
 		// iterates through the tokens for as long as it's a continous name with arrows like -> hello->type
 		for getToken(1).type_ == TT_ARROW && getToken(2).type_ == TT_ID && (!StringInSlice(getToken(2).value, TYPES) && !StringInSlice(getToken(2).value, INSTRUCTIONS) && !StringInSlice(getToken(2).value, CUSTOM_TYPES)) {
-			name_node.value = current_token.value
 			p_advance()
 			name_node.value += "->"
 			p_advance()
@@ -124,16 +122,47 @@ func p_func_parse(end_type string) []Node {
 }
 
 // makes struct args of of a list in STRUCTS
-func p_make_struct_args(name, type_ string) {
+func p_make_struct_args(name, type_ string, is_ptr, is_n_ptr bool) {
 	str_get := STRUCTS[type_]
 	for i := 0; len(str_get) > i; i++ {
 		current_struct_attr := str_get[i]
-		if current_struct_attr.what_type() == "AssignemntNode" {
-			// do smth with the assignementnode
-			// also, if the type is custom type load the stuff for that as well
+		if current_struct_attr.what_type() == "AssignementNode" {
+			current_struct_attr2 := current_struct_attr.(AssignemntNode)
+			if StringInSlice(current_struct_attr2.asgn_type, CUSTOM_TYPES) {
+				if is_ptr {
+					VARS[name+"."+current_struct_attr2.var_name] = AssignemntNode{current_struct_attr2.asgn_type, current_struct_attr2.ptrs, name + "." + current_struct_attr2.var_name, current_struct_attr2.content}
+					p_make_struct_args(name+"->"+current_struct_attr2.var_name, current_struct_attr2.asgn_type, true, false)
+				} else {
+					VARS[name+"->"+current_struct_attr2.var_name] = AssignemntNode{current_struct_attr2.asgn_type, current_struct_attr2.ptrs, name + "->" + current_struct_attr2.var_name, current_struct_attr2.content}
+					p_make_struct_args(name+"."+current_struct_attr2.var_name, current_struct_attr2.asgn_type, false, true)
+				}
+			} else {
+				if is_n_ptr {
+					VARS[name+"."+current_struct_attr2.var_name] = AssignemntNode{current_struct_attr2.asgn_type, current_struct_attr2.ptrs, name + "." + current_struct_attr2.var_name, current_struct_attr2.content}
+				}
+				if is_ptr {
+					VARS[name+"->"+current_struct_attr2.var_name] = AssignemntNode{current_struct_attr2.asgn_type, current_struct_attr2.ptrs, name + "->" + current_struct_attr2.var_name, current_struct_attr2.content}
+				}
+			}
 		} else if current_struct_attr.what_type() == "ArrAssignementNode" {
-			// do smth with the arr assignment node
-			// also, if the type is custom type load the stuff for that as well
+			current_struct_attr2 := current_struct_attr.(ArrAssignementNode)
+			if StringInSlice(current_struct_attr2.asgn_type, CUSTOM_TYPES) {
+				if is_n_ptr {
+					p_make_struct_args(name+"."+current_struct_attr2.array_name, current_struct_attr2.asgn_type, false, true)
+					VARS[name+"."+current_struct_attr2.array_name] = ArrAssignementNode{current_struct_attr2.asgn_type, current_struct_attr2.ptrs, name + "." + current_struct_attr2.array_name, current_struct_attr2.arr_len}
+				}
+				if is_ptr {
+					p_make_struct_args(name+"->"+current_struct_attr2.array_name, current_struct_attr2.asgn_type, true, false)
+					VARS[name+"->"+current_struct_attr2.array_name] = AssignemntNode{current_struct_attr2.asgn_type, current_struct_attr2.ptrs, name + "->" + current_struct_attr2.array_name, current_struct_attr2.arr_len}
+				}
+			} else {
+				if is_n_ptr {
+					VARS[name+"."+current_struct_attr2.array_name] = ArrAssignementNode{current_struct_attr2.asgn_type, current_struct_attr2.ptrs, name + "." + current_struct_attr2.array_name, current_struct_attr2.arr_len}
+				}
+				if is_ptr {
+					VARS[name+"->"+current_struct_attr2.array_name] = ArrAssignementNode{current_struct_attr2.asgn_type, current_struct_attr2.ptrs, name + "->" + current_struct_attr2.array_name, current_struct_attr2.arr_len}
+				}
+			}
 		} else {
 			NewError("WTF", "", "", true)
 		}
@@ -144,8 +173,8 @@ func p_make_struct_args(name, type_ string) {
 
 /* returns a lot of things:
 -	function_call: example -> func_name(10, 20)
--	variable_name: example -> var
--	list_slice: example list[5]
+-	variable_name: example -> (*...|&)var
+-	list_slice: example (*..|&)list[5]
 -	int: example -> 10
 -	flt: example -> 10.5
 -	str: example -> "Hello"
@@ -153,7 +182,16 @@ func p_make_struct_args(name, type_ string) {
 */
 func p_factor() LiteralNode {
 	tok := current_token
+	var ptrs int = 0
+	var deref bool = false
 	// returns either a func_call, var_name or array_slcie
+	if tok.type_ == TT_MUL {
+		ptrs = getPointers()
+	} else if tok.type_ == TT_KAND {
+		deref = true
+		p_advance()
+	}
+	tok = current_token
 	if tok.type_ == TT_ID {
 		tok = getName()
 		p_advance()
@@ -164,22 +202,23 @@ func p_factor() LiteralNode {
 				arr_pos := p_expr()
 				if current_token.type_ == TT_RBRK {
 					p_advance()
-					return ListSliceNode{name: tok.value, pos: arr_pos}
+					return ListSliceNode{name: tok.value, pos: arr_pos, ptrs: ptrs, deref: deref}
 				} else {
 					NewError("ArrayNotClosed", "A array was assagnid with '[' but no ']' was found. ", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
 				}
 			}
-			return VarNameNode{tok.value}
+			return VarNameNode{tok.value, ptrs, deref}
 		} else if StringInMap(tok.value, FUNCTIONS) {
 			// make and return a functioncall
 		} else {
-			NewError("", "", "", true)
+			fmt.Println(tok.value)
+			NewError("RefferenceError", "The refferenced var, func or struct is not defined", fmt.Sprintf("%s at ln %d", tok.section, tok.ln_count), true)
 		}
 	} else if tok.type_ == TT_INT {
 		// return a node for either int, flt, str or char
 	}
 	p_advance()
-	return DataTypeNode{tok.value}
+	return DataTypeNode{tok.value, ptrs}
 }
 
 func p_term() LiteralNode {
@@ -227,7 +266,11 @@ func p_assign(type_ string) Node {
 	assignement_name := current_token
 
 	if StringInSlice(type_, CUSTOM_TYPES) {
-		p_make_struct_args(assignement_name.value, type_)
+		if ptrs != 0 {
+			p_make_struct_args(assignement_name.value, type_, true, false)
+		} else {
+			p_make_struct_args(assignement_name.value, type_, false, true)
+		}
 	}
 
 	// checks if the variable allready exists
@@ -307,6 +350,19 @@ func p_struct(estruct bool) Node {
 	if current_token.value == "typedef" {
 		typedef = true
 		p_advance()
+	} else if (current_token.type_ == TT_ID || current_token.type_ == TT_MUL) && !StringInMap(current_token.value, VARS) && getToken(1).type_ != TT_LCURL && StringInMapArray(struct_name.value, STRUCTS) && !StringInSlice(struct_name.value, CUSTOM_TYPES) {
+		// initialize struct with variable
+		var ptrs int = 0
+		if current_token.type_ == TT_MUL {
+			ptrs = getPointers()
+		}
+		var_name := current_token.value
+		p_advance()
+		if ptrs != 0 {
+			p_make_struct_args(var_name, struct_name.value, true, false)
+		} else {
+			p_make_struct_args(var_name, struct_name.value, false, true)
+		}
 	}
 	if current_token.type_ == TT_LCURL {
 		p_advance()
@@ -314,8 +370,8 @@ func p_struct(estruct bool) Node {
 		VARS = make(map[string]Node)
 		vars := p_func_parse(TT_RCURL)
 		VARS = prev_vars
+		STRUCTS[struct_name.value] = vars
 		if typedef {
-			STRUCTS[struct_name.value] = vars
 			CUSTOM_TYPES = append(CUSTOM_TYPES, struct_name.value)
 		}
 		return StructNode{name: struct_name.value, typedef: typedef, estruct: estruct, vars: vars}
@@ -368,6 +424,8 @@ func mkID() Node {
 		// make for
 	} else {
 		// look for function call or reassignement
+		fmt.Println(current_token)
+		NewError("", "", "", true)
 	}
 	return node
 }

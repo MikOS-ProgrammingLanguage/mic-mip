@@ -54,7 +54,7 @@ func main() {
 		tokens := compiler_util.Lex(&txt, "lexer_test.mik")
 		//fmt.Println(out)
 		var illegal_name []string = []string{""}
-		_ = compiler_util.Parse(tokens, illegal_name)
+		fmt.Println(compiler_util.Parse(tokens, illegal_name))
 		//fmt.Println("\n", out2)
 	}
 }

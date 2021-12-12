@@ -1,9 +1,17 @@
 int**** i = 10 + 20 * 300 + 50 / 10 - 10
 int i2[i]
-int i3[i2[0]+3000000]
-int i4 = i3
+int i3[*i2[0]+3000000]
+int* i4 = *i3[10]
 
 flt i5 = tcst(i4, flt)
+
+
+
+struct test3 {
+    int a,
+    int b,
+    int c
+}
 
 struct test typedef {
     int a,
@@ -13,9 +21,16 @@ struct test typedef {
 
 struct test2 typedef {
     int a,
-    test2 aa,
-    test b[]
+    test aa,
+    test c[20]
 }
 
-test2 test_struct
-int yes = test2.b   // completely broken. also fix test2 and stuff
+struct test3* iiii   // creates a struct refference without typedef
+
+int yet_another_test = iiii->a
+
+test2* test_struct
+int yes = test_struct->a
+test yes_arr = test_struct->c[5]
+int yes_arr2 = yes_arr.a
+int yes_c = test_struct->aa->a

@@ -44,8 +44,9 @@ type RootNode struct {
 }
 
 // adds a given node to the root node stem
-func (rnode RootNode) AddNodeToRoot(node Node) {
+func (rnode RootNode) AddNodeToRoot(node Node) RootNode {
 	rnode.nodes = append(rnode.nodes, node)
+	return rnode
 }
 
 /* First class nodes */
@@ -106,14 +107,19 @@ type TypeCastNode struct {
 
 // Third class nodes
 type ListSliceNode struct {
-	name string
-	pos  LiteralNode
+	name  string
+	pos   LiteralNode
+	ptrs  int
+	deref bool
 }
 type VarNameNode struct {
-	name string
+	name  string
+	ptrs  int
+	deref bool
 }
 type DataTypeNode struct {
 	dtype string
+	ptrs  int
 }
 type FuncCallNode struct {
 	call_name  string
