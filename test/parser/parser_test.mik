@@ -1,0 +1,21 @@
+int**** i = 10 + 20 * 300 + 50 / 10 - 10
+int i2[i]
+int i3[i2[0]+3000000]
+int i4 = i3
+
+flt i5 = tcst(i4, flt)
+
+struct test typedef {
+    int a,
+    int b,
+    int c
+}
+
+struct test2 typedef {
+    int a,
+    test2 aa,
+    test b[]
+}
+
+test2 test_struct
+int yes = test2.b   // completely broken. also fix test2 and stuff

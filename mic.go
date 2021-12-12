@@ -5,12 +5,21 @@ import (
 	"fmt"
 	"mic/compiler_util"
 	"mic/install"
+	"mic/test"
 	"os"
 )
 
 var help_str string = ""
+var test_var bool = false
 
 func main() {
+	if test_var {
+		// O(n)
+		test.TestLex(1)
+		// wtf doesn't scale at all lol
+		test.TestParse(1)
+	}
+
 	// load the source path from mik.conf
 	src_path, err := os.ReadFile("../mik.conf")
 	if err != nil {
@@ -35,13 +44,17 @@ func main() {
 		var err error
 
 		// load source_code
-		temp_txt, err = os.ReadFile("test/main_test.mik")
+		temp_txt, err = os.ReadFile("test/parser/parser_test.mik")
 		if err != nil {
 			panic(err)
 		}
 
 		// parse the memory address of temp_txt
 		txt = string(temp_txt)
-		_ = compiler_util.Lex(&txt)
+		tokens := compiler_util.Lex(&txt, "lexer_test.mik")
+		//fmt.Println(out)
+		var illegal_name []string = []string{""}
+		_ = compiler_util.Parse(tokens, illegal_name)
+		//fmt.Println("\n", out2)
 	}
 }
