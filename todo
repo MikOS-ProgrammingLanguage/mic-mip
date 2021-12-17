@@ -2,7 +2,7 @@
 - Parser
 - Generator
 - Preprocessor
-
+- Type checking
 === Done ===
     Lexer
     Parser.Structs
@@ -11,4 +11,10 @@
 
 
 == Parser ==
-- everything
+    mikf    -- local scope except gloabal
+    mikas
+    for
+    while
+    if
+    else 
+    elif

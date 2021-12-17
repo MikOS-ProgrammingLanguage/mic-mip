@@ -50,6 +50,9 @@ func (rnode RootNode) AddNodeToRoot(node Node) RootNode {
 }
 
 /* First class nodes */
+type ReturnNode struct {
+	return_val LiteralNode
+}
 type ReAssignmentNode struct {
 	re_type string
 	content LiteralNode
@@ -57,6 +60,7 @@ type ReAssignmentNode struct {
 type AssignemntNode struct {
 	asgn_type string
 	ptrs      int
+	global    bool
 	var_name  string
 	content   LiteralNode
 }
@@ -67,19 +71,21 @@ type ArrReAssignementNode struct {
 type ArrAssignementNode struct {
 	asgn_type  string
 	ptrs       int
+	global     bool
 	array_name string
 	arr_len    LiteralNode
 }
 type FunctionNode struct {
+	decl       bool
 	func_name  string
-	arg_parse  SubNode
-	ret_type   LiteralNode
-	code_block Node
+	arg_parse  []Node
+	ret_type   string
+	code_block []Node
 }
 type AsmFunctionNode struct {
 	func_name string
-	arg_parse SubNode
-	ret_type  LiteralNode
+	arg_parse []Node
+	ret_type  string
 	asm_block string
 }
 type StructNode struct {
@@ -97,12 +103,9 @@ type BinOpNode struct {
 	op_tok     string
 	right_node LiteralNode
 }
-type FuncParseNode struct {
-	parsed []AssignemntNode // bcs -> mikf name(int i, int b) {}
-}
 type TypeCastNode struct {
 	tcast LiteralNode
-	dtype string
+	dtype LiteralNode
 }
 
 // Third class nodes
@@ -123,7 +126,12 @@ type DataTypeNode struct {
 }
 type FuncCallNode struct {
 	call_name  string
-	func_parse []SubNode // Subnode arr bcs -> call_name(expr(), expr(), ...n)
+	func_parse []LiteralNode // Subnode arr bcs -> call_name(expr(), expr(), ...n)
+}
+
+type DirectNode struct {
+	type_ string
+	value string
 }
 
 // -------------- 1 Interface implement --------------
@@ -134,6 +142,14 @@ func (unon UniversalNone) is_1_node() bool {
 }
 func (unon UniversalNone) what_type() string {
 	return "UinversalNone"
+}
+
+// implements is_1_node for Return
+func (ret ReturnNode) is_1_node() bool {
+	return true
+}
+func (ret ReturnNode) what_type() string {
+	return "ReturnNode"
 }
 
 // implements is_1_node for Assignement
@@ -183,6 +199,16 @@ func (asm AsmFunctionNode) is_1_node() bool {
 func (asm AsmFunctionNode) what_type() string {
 	return "AsmFunctionNode"
 }
+func arg_len(fn Node) int {
+	if fn.what_type() == "AsmFunctionNode" {
+		temp := fn.(AsmFunctionNode)
+		return len(temp.arg_parse)
+	} else {
+		temp := fn.(FunctionNode)
+		return len(temp.arg_parse)
+	}
+	return 1
+}
 
 // implement is_1_node for debug
 func (debg DebugNode) is_1_node() bool {
@@ -209,11 +235,6 @@ func (unon UniversalNone) is_2_node() bool {
 
 // implements is_2_node for BinOp
 func (bio BinOpNode) is_2_node() bool {
-	return true
-}
-
-// implements is_2_node for FuncParseNode
-func (fparse FuncParseNode) is_2_node() bool {
 	return true
 }
 
@@ -250,5 +271,9 @@ func (lslice ListSliceNode) is_3_node() bool {
 }
 
 func (tcst TypeCastNode) is_3_node() bool {
+	return true
+}
+
+func (drct DirectNode) is_3_node() bool {
 	return true
 }

@@ -7,6 +7,7 @@ import (
 	"mic/install"
 	"mic/test"
 	"os"
+	"time"
 )
 
 var help_str string = ""
@@ -51,10 +52,14 @@ func main() {
 
 		// parse the memory address of temp_txt
 		txt = string(temp_txt)
+		start_lex := time.Now()
 		tokens := compiler_util.Lex(&txt, "lexer_test.mik")
+		fmt.Println("Lexed in: ", time.Since(start_lex))
 		//fmt.Println(out)
 		var illegal_name []string = []string{""}
-		fmt.Println(compiler_util.Parse(tokens, illegal_name))
+		start_parse := time.Now()
+		_ = compiler_util.Parse(tokens, illegal_name)
+		fmt.Println("Parsed in: ", time.Since(start_parse))
 		//fmt.Println("\n", out2)
 	}
 }

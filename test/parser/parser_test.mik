@@ -1,11 +1,27 @@
+void* test_void_ptr
+global str helllo = "wohooo"
 int**** i = 10 + 20 * 300 + 50 / 10 - 10
 int i2[i]
 int i3[*i2[0]+3000000]
 int* i4 = *i3[10]
 
-flt i5 = tcst(i4, flt)
+flt test_flt = 20.5
 
+int type_check_int = test_flt
 
+flt i5 = tcst(i4)
+
+mikf test_f(int a, int b) -> void {
+    global int c = a + b
+    return c
+}
+mikas test_mikas(int a, int b) -> void {
+    mov rax, rdi
+    ret
+}
+
+int abc = test_f(20, 30)
+int abc_asm = test_mikas(1, 3)
 
 struct test3 {
     int a,
@@ -27,8 +43,8 @@ struct test2 typedef {
 
 struct test3* iiii   // creates a struct refference without typedef
 
+int glob_test = c
 int yet_another_test = iiii->a
-
 test2* test_struct
 int yes = test_struct->a
 test yes_arr = test_struct->c[5]
