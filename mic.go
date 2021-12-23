@@ -30,9 +30,22 @@ func main() {
 
 	inptPtr := flag.String("i", "", "input flag")
 	outpPtr := flag.String("o", "mik", "output flag")
+	cTarget := flag.Bool("c", true, "Specifies the compiling target.")
+	asmTarget := flag.Bool("asm", false, "Sets target flag to asm")
+	wasmTarget := flag.Bool("wasm", false, "Sets target to wasm")
 	installPtr := flag.Bool("install", false, "wether the config should be created or not")
 
 	flag.Parse()
+
+	// sets compiling target
+	var tar string = "c"
+	if *cTarget {
+		tar = "c"
+	} else if *asmTarget {
+		tar = "asm"
+	} else if *wasmTarget {
+		tar = "wasm"
+	}
 
 	if *inptPtr == "" && *installPtr {
 		install.Install_at_current_path()
@@ -51,15 +64,18 @@ func main() {
 		}
 
 		// parse the memory address of temp_txt
+		start := time.Now()
 		txt = string(temp_txt)
-		start_lex := time.Now()
 		tokens := compiler_util.Lex(&txt, "lexer_test.mik")
-		fmt.Println("Lexed in: ", time.Since(start_lex))
 		//fmt.Println(out)
 		var illegal_name []string = []string{""}
-		start_parse := time.Now()
-		_ = compiler_util.Parse(tokens, illegal_name)
-		fmt.Println("Parsed in: ", time.Since(start_parse))
+		ast := compiler_util.Parse(tokens, illegal_name)
+
+		// generate code
+		comp_success := compiler_util.Generate(&ast, tar, *outpPtr)
+		if comp_success {
+			compiler_util.NewSuccess("Succesfully compiled", fmt.Sprintf("In %s. To %s.c", time.Since(start).String(), *outpPtr), "", false)
+		}
 		//fmt.Println("\n", out2)
 	}
 }

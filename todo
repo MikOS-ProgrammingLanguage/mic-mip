@@ -3,16 +3,8 @@
 - Generator
 - Preprocessor
 - Type checking
-=== Done ===
-    Lexer
-    Parser.Structs
-    Parser.Estructs
-    Parser.Assignement
-
 
 == Parser ==
-    mikf    -- local scope except gloabal
-    mikas
     for
     while
     if
