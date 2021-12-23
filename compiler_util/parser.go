@@ -15,6 +15,8 @@ var VARS map[string]Node = make(map[string]Node)        // holds assigned vars
 var FUNCTIONS map[string]Node = make(map[string]Node)   // holds all functions that have a body
 var STRUCTS map[string][]Node = make(map[string][]Node) // holds all structs and their vars
 var GLOBALS map[string]Node = make(map[string]Node)
+var BOOL bool = false
+var PREV_IF bool = false
 
 var global bool = false
 
@@ -218,11 +220,16 @@ func p_factor() LiteralNode {
 	tok := current_token
 	var ptrs int = 0
 	var deref bool = false
+	var not bool = false
 	// returns either a func_call, var_name or array_slcie
+
 	if tok.type_ == TT_MUL {
 		ptrs = getPointers()
 	} else if tok.type_ == TT_KAND {
 		deref = true
+		p_advance()
+	} else if tok.type_ == TT_NOT && BOOL {
+		not = true
 		p_advance()
 	}
 	tok = current_token
@@ -236,12 +243,12 @@ func p_factor() LiteralNode {
 				arr_pos := p_expr()
 				if current_token.type_ == TT_RBRK {
 					p_advance()
-					return ListSliceNode{Name: tok.value, Pos: arr_pos, Ptrs: ptrs, Deref: deref}
+					return ListSliceNode{Name: tok.value, Pos: arr_pos, Ptrs: ptrs, Deref: deref, Not: not}
 				} else {
 					NewError("ArrayNotClosed", "A array was assagnid with '[' but no ']' was found. ", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
 				}
 			}
-			return VarNameNode{tok.value, ptrs, deref}
+			return VarNameNode{tok.value, ptrs, deref, not}
 		} else if StringInMap(tok.value, FUNCTIONS) {
 			call_name := tok.value
 			if current_token.type_ == TT_LPAREN {
@@ -257,7 +264,6 @@ func p_factor() LiteralNode {
 	p_advance()
 	return DirectNode{Type_: tok.type_, Value: tok.value}
 }
-
 func p_term() LiteralNode {
 	ops := []string{TT_MUL, TT_DIV}
 	return binOp(true, false, ops)
@@ -265,6 +271,33 @@ func p_term() LiteralNode {
 func p_expr() LiteralNode {
 	ops := []string{TT_PLUS, TT_MINUS}
 	return binOp(false, true, ops)
+}
+
+func p_bool_expr() LiteralNode {
+	var bool_ops []string = []string{
+		TT_LTHEN,
+		TT_LEQ,
+		TT_GTHEN,
+		TT_GEQ,
+		TT_KAND,
+		TT_AND,
+		TT_OR,
+		TT_NOT,
+		TT_NEQ,
+	}
+	var left LiteralNode
+	BOOL = true
+	left = p_expr()
+	for StringInSlice(current_token.type_, bool_ops) && !is_eot {
+		op_tok := current_token
+		p_advance()
+
+		var right LiteralNode
+		right = p_expr()
+		left = BoolOpNode{left, op_tok.value, right}
+	}
+	BOOL = false
+	return left
 }
 
 // makes a binOp node and returns it
@@ -433,11 +466,11 @@ func p_reassign(ptr bool) Node {
 			return FuncCallNode{Call_name: name.value, Func_parse: call_args}
 		} else {
 			// make error
-			NewError("", "", "", true)
+			NewError("ParentheseExpectedError", "A ')' was expected but not found", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
 		}
 	} else {
 		// make error
-		NewError("", "", "", true)
+		NewError("UnknownOperatorError", "Expected a reassignement, but no ?= or any other operator was found", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
 	}
 	return ReAssignmentNode{}
 }
@@ -601,11 +634,88 @@ func p_mikas() AsmFunctionNode {
 	return AsmFunctionNode{}
 }
 
+// makes a if statement and returns it
+func p_if(elif bool) IfNode {
+	var bool_block LiteralNode
+	p_advance()
+
+	if current_token.type_ == TT_LPAREN {
+		p_advance()
+		bool_block = p_bool_expr()
+		if current_token.type_ == TT_RPAREN {
+			p_advance()
+			if current_token.type_ == TT_LCURL {
+				p_advance()
+				var code []Node
+				for current_token.type_ != TT_EOF && current_token.type_ != TT_RCURL {
+					if current_token.type_ == TT_ID || current_token.type_ == TT_MUL {
+						res := mkID()
+						//fmt.Println(res)
+						//fmt.Println(VARS)
+						code = append(code, res)
+					} else if current_token.type_ == TT_DEBUG {
+						code = append(code, DebugNode{})
+					} else {
+						NewError("ParsingError", "A function decleration, struct decleration, variable assignement or refference was expected but not found", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+					}
+				}
+				p_advance()
+				ret_if := IfNode{elif: elif, bool_: bool_block, codeblock: code}
+				PREV_IF = true
+				return ret_if
+			} else {
+				NewError("CodeBlockExpectedError", "A { was expexted after if (bool) ...", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+			}
+		} else {
+			NewError("ParantheseExpectedError", "After bool condition a ')' was expected but not found.", fmt.Sprintf("%s at kn %d", current_token.section, current_token.ln_count), true)
+		}
+	} else {
+		NewError("ParantheseExpectedError", "After 'if' condition a '(' was expected but not found.", fmt.Sprintf("%s at kn %d", current_token.section, current_token.ln_count), true)
+	}
+	return IfNode{}
+}
+
+// makes a else statemtn and returns it
+func p_else() ElseNode {
+	p_advance()
+
+	if current_token.type_ == TT_LCURL {
+		p_advance()
+		var code []Node
+		for current_token.type_ != TT_EOF && current_token.type_ != TT_RCURL {
+			if current_token.type_ == TT_ID || current_token.type_ == TT_MUL {
+				res := mkID()
+				//fmt.Println(res)
+				//fmt.Println(VARS)
+				code = append(code, res)
+			} else if current_token.type_ == TT_DEBUG {
+				code = append(code, DebugNode{})
+			} else {
+				NewError("ParsingError", "A function decleration, struct decleration, variable assignement or refference was expected but not found", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+			}
+		}
+		p_advance()
+		ret_else := ElseNode{codeblock: code}
+		return ret_else
+	} else {
+		NewError("CodeBlockExpectedError", "A code block was expecred after 'else'.", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+	}
+	return ElseNode{}
+}
+
+// makes a for statement and returns it
+func p_for() ForNode {
+	return ForNode{}
+}
+
 /*-------------------expr, factor and binary op-------------------*/
 func mkID() Node {
 	var node Node
 	tok := current_token
 	// check if it is a assignement by looking for a dtype
+	if PREV_IF && tok.value != "elif" && tok.value != "else" && tok.value != "if" {
+		PREV_IF = false
+	}
 	if StringInSlice(tok.value, TYPES) || StringInSlice(tok.value, CUSTOM_TYPES) {
 		node = p_assign(tok.value, global)
 	} else if tok.value == "global" && !global {
@@ -631,11 +741,20 @@ func mkID() Node {
 	} else if tok.value == "estruct" {
 		node = p_struct(true)
 	} else if tok.value == "if" {
-		// make a if statement
+		node = p_if(false)
 	} else if tok.value == "elif" {
-		// make a elif
+		if !PREV_IF {
+			NewError("UnexpectedOperationError", "No elif is expected without a if to even begin with.", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+		} else {
+			node = p_if(true)
+		}
 	} else if tok.value == "else" {
-		// make else
+		if !PREV_IF {
+			NewError("UnexpectedOperationError", "No else is expected without a if or elif to even begin with.", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+		} else {
+			node = p_else()
+			PREV_IF = false
+		}
 	} else if tok.value == "while" {
 		// make while
 	} else if tok.value == "for" {

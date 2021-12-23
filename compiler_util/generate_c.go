@@ -267,6 +267,46 @@ func gen_c(node Node) string {
 			main_code_arr_gc = append(main_code_arr_gc, code)
 			return code
 		}
+	case "IfNode":
+		cast_val := node.(IfNode)
+		code_ := ""
+		if cast_val.elif {
+			code_ += "else if ("
+		} else {
+			code_ += "if ("
+		}
+		code_ += gen_c_s_l(cast_val.bool_) + ") {\n"
+		current_main_gc := main_code_arr_gc
+		for _, val := range cast_val.codeblock {
+			code_ += "\t\t"
+			code_ += gen_c(val)
+		}
+		code_ += "\t}\n"
+		main_code_arr_gc = current_main_gc
+		if in_func_gc {
+			*none_main_code_gc += code_
+			return code_
+		} else {
+			main_code_arr_gc = append(main_code_arr_gc, code_)
+			return code_
+		}
+	case "ElseNode":
+		cast_val := node.(ElseNode)
+		code_ := "else {\n"
+		current_main_gc := main_code_arr_gc
+		for _, val := range cast_val.codeblock {
+			code_ += "\t\t"
+			code_ += gen_c(val)
+		}
+		code_ += "\t}\n"
+		main_code_arr_gc = current_main_gc
+		if in_func_gc {
+			*none_main_code_gc += code_
+			return code_
+		} else {
+			main_code_arr_gc = append(main_code_arr_gc, code_)
+			return code_
+		}
 	default:
 		NewError(reflect.TypeOf(current_node_gc).Name(), "", "", true)
 	}
@@ -302,6 +342,12 @@ func GenerateC(ast_ *RootNode, out_pth string) bool {
 func gen_c_s_l(node LiteralNode) string {
 	// switch all second and third class objects
 	switch reflect.TypeOf(node).Name() {
+	case "BoolOpNode":
+		new_op := node.(BoolOpNode)
+		left_c := gen_c_s_l(new_op.left)
+		op := new_op.op_tok
+		right_c := gen_c_s_l(new_op.right)
+		return left_c + op + right_c
 	case "BinOpNode":
 		new_op := node.(BinOpNode)
 		left_c := gen_c_s_l(new_op.Left_node)
@@ -347,6 +393,9 @@ func gen_c_s_l(node LiteralNode) string {
 	case "VarNameNode":
 		new_op := node.(VarNameNode)
 		code_ := ""
+		if new_op.Not {
+			code_ += "!"
+		}
 		if new_op.Deref {
 			code_ += "&"
 		} else if new_op.Ptrs != 0 {
@@ -358,6 +407,9 @@ func gen_c_s_l(node LiteralNode) string {
 	case "ListSliceNode":
 		new_op := node.(ListSliceNode)
 		code_ := ""
+		if new_op.Not {
+			code_ += "!"
+		}
 		if new_op.Ptrs != 0 {
 			for i := 0; i < new_op.Ptrs; i++ {
 				code_ += "*"

@@ -52,6 +52,22 @@ func (rnode RootNode) AddNodeToRoot(node Node) RootNode {
 }
 
 /* First class nodes */
+type IfNode struct {
+	elif      bool
+	bool_     LiteralNode
+	codeblock []Node
+}
+type ElseNode struct {
+	codeblock []Node
+}
+type ForNode struct {
+	// how the fuck
+	// codeblock
+}
+type WhileNode struct {
+	// bool statement
+	// codeblock
+}
 type ReturnNode struct {
 	Return_val LiteralNode
 }
@@ -119,6 +135,11 @@ type TypeCastNode struct {
 	Tcast LiteralNode
 	Dtype LiteralNode
 }
+type BoolOpNode struct {
+	left   LiteralNode
+	op_tok string
+	right  LiteralNode
+}
 
 // Third class nodes
 type ListSliceNode struct {
@@ -126,11 +147,13 @@ type ListSliceNode struct {
 	Pos   LiteralNode
 	Ptrs  int
 	Deref bool
+	Not   bool
 }
 type VarNameNode struct {
 	Name  string
 	Ptrs  int
 	Deref bool
+	Not   bool
 }
 type DataTypeNode struct {
 	Dtype string
@@ -156,6 +179,39 @@ func (unon UniversalNone) What_type() string {
 	return "UinversalNone"
 }
 
+// implements is_1_node
+func (ifn IfNode) Is_1_node() bool {
+	return true
+}
+func (ifn IfNode) What_type() string {
+	return "IfNode"
+}
+
+// implements is_1_node
+func (elsen ElseNode) Is_1_node() bool {
+	return true
+}
+func (elsen ElseNode) What_type() string {
+	return "ElseNode"
+}
+
+// implements is_1_node
+func (forn ForNode) Is_1_node() bool {
+	return true
+}
+func (forn ForNode) What_type() string {
+	return "ForNode"
+}
+
+// implements is_1_node
+func (whilen WhileNode) Is_1_node() bool {
+	return true
+}
+func (whilen WhileNode) What_type() string {
+	return "WhileNode"
+}
+
+// implements is_1_node
 func (struct_ref RefStructNode) Is_1_node() bool {
 	return true
 }
@@ -267,6 +323,14 @@ func (bio BinOpNode) What_type() string {
 	return "BinOpNode"
 }
 
+// implements is_2_node for BoolOp
+func (boo BoolOpNode) Is_2_node() bool {
+	return true
+}
+func (boo BoolOpNode) What_type() string {
+	return "BoolOpNode"
+}
+
 // -------------- 3 Interface implement --------------
 
 // implements is_1_node for UniversalNone
@@ -280,6 +344,11 @@ func (dtype DataTypeNode) Is_3_node() bool {
 }
 func (dtype DataTypeNode) What_type() string {
 	return "DataTypeNode"
+}
+
+// implements is_3_node for bool op
+func (boo BoolOpNode) Is_3_node() bool {
+	return true
 }
 
 // implements is_3_node for FuncCallNode

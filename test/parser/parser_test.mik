@@ -6,6 +6,14 @@ i2[0] ?= 2000 + ****i
 int i3[i2[0]+3000000]
 int** i4 = &i3[10]
 
+if (!i2[0] || 2034+50) {
+    helllo ?= "Wtf"
+} elif (!i2[0]) {
+    helllo ?= "wtf2"
+} else {
+    helllo ?= "wtf3"
+}
+
 flt test_flt = 20.5
 
 int type_check_int = test_flt
