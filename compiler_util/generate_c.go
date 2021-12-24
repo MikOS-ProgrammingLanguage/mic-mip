@@ -307,6 +307,41 @@ func gen_c(node Node) string {
 			main_code_arr_gc = append(main_code_arr_gc, code_)
 			return code_
 		}
+	case "WhileNode":
+		cast_val := node.(WhileNode)
+		code_ := "while ("
+		code_ += gen_c_s_l(cast_val.bool_) + ") {\n"
+		current_main_gc := main_code_arr_gc
+		for _, val := range cast_val.codeblock {
+			code_ += "\t\t"
+			code_ += gen_c(val)
+		}
+		code_ += "\t}\n"
+		main_code_arr_gc = current_main_gc
+		if in_func_gc {
+			*none_main_code_gc += code_
+			return code_
+		} else {
+			main_code_arr_gc = append(main_code_arr_gc, code_)
+			return code_
+		}
+	case "DirectNode":
+		cast_val := node.(DirectNode)
+		if cast_val.Type_ == "" {
+			code_ := ""
+			code_ += cast_val.Value
+			code_ += ";\n"
+
+			if in_func_gc {
+				*none_main_code_gc += code_
+				return code_
+			} else {
+				main_code_arr_gc = append(main_code_arr_gc, code_)
+				return code_
+			}
+		} else {
+			NewError("", "", "", true)
+		}
 	default:
 		NewError(reflect.TypeOf(current_node_gc).Name(), "", "", true)
 	}
@@ -339,19 +374,32 @@ func GenerateC(ast_ *RootNode, out_pth string) bool {
 	}
 }
 
+func op_tok_gc(t string) string {
+	switch t {
+	case "b&":
+		return "&"
+	case "b|":
+		return "|"
+	case "b!":
+		return "~"
+	default:
+		return t
+	}
+}
+
 func gen_c_s_l(node LiteralNode) string {
 	// switch all second and third class objects
 	switch reflect.TypeOf(node).Name() {
 	case "BoolOpNode":
 		new_op := node.(BoolOpNode)
 		left_c := gen_c_s_l(new_op.left)
-		op := new_op.op_tok
+		op := op_tok_gc(new_op.op_tok)
 		right_c := gen_c_s_l(new_op.right)
 		return left_c + op + right_c
 	case "BinOpNode":
 		new_op := node.(BinOpNode)
 		left_c := gen_c_s_l(new_op.Left_node)
-		op := new_op.Op_tok
+		op := op_tok_gc(new_op.Op_tok)
 		right_c := gen_c_s_l(new_op.Right_node)
 		return left_c + op + right_c
 	case "DataTypeNode":
@@ -365,7 +413,13 @@ func gen_c_s_l(node LiteralNode) string {
 		return code_
 	case "FuncCallNode":
 		new_op := node.(FuncCallNode)
-		code_ := new_op.Call_name + "("
+		code_ := ""
+		if new_op.BitNot {
+			code_ += "~"
+		} else if new_op.Minus {
+			code_ += "-"
+		}
+		code_ += new_op.Call_name + "("
 		if len(new_op.Func_parse) > 0 {
 			var len_ int = 0
 			for i := 0; i < (len(new_op.Func_parse) - 1); i++ {
@@ -383,18 +437,29 @@ func gen_c_s_l(node LiteralNode) string {
 		return code_
 	case "DirectNode":
 		new_op := node.(DirectNode)
+		code_ := ""
+		if new_op.BitNot {
+			code_ += "~"
+		} else if new_op.Minus {
+			code_ += "-"
+		}
 		if new_op.Type_ == TT_STRING {
-			return fmt.Sprintf("\"%s\"", new_op.Value)
+			return code_ + fmt.Sprintf("\"%s\"", new_op.Value)
 		} else if new_op.Type_ == TT_CHAR {
-			return fmt.Sprintf("'%s'", new_op.Value)
+			return code_ + fmt.Sprintf("'%s'", new_op.Value)
 		} else {
-			return new_op.Value
+			return code_ + new_op.Value
 		}
 	case "VarNameNode":
 		new_op := node.(VarNameNode)
 		code_ := ""
 		if new_op.Not {
 			code_ += "!"
+		}
+		if new_op.BitNot {
+			code_ += "~"
+		} else if new_op.Minus {
+			code_ += "-"
 		}
 		if new_op.Deref {
 			code_ += "&"
@@ -409,6 +474,11 @@ func gen_c_s_l(node LiteralNode) string {
 		code_ := ""
 		if new_op.Not {
 			code_ += "!"
+		}
+		if new_op.BitNot {
+			code_ += "~"
+		} else if new_op.Minus {
+			code_ += "-"
 		}
 		if new_op.Ptrs != 0 {
 			for i := 0; i < new_op.Ptrs; i++ {

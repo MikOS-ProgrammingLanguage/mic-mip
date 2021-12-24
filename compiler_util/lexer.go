@@ -11,9 +11,15 @@ var numbers string = "0123456789"
 
 // All the Tokens that exist
 const (
+	TT_BITAND     string = "BITAND"   // b&
+	TT_BITOR      string = "BITOR"    // b|
+	TT_BITXOR     string = "BITXOR"   // ^
+	TT_BITNOT     string = "BITNOT"   // b!
 	TT_LTHEN      string = "LTHEN"    // <  1
-	TT_LEQ        string = "LEQ"      // <=	2
-	TT_GTHEN      string = "GTHEN"    // >	3
+	TT_SHIFTL     string = "SHIFTL"   // << 2
+	TT_LEQ        string = "LEQ"      // <=	3
+	TT_GTHEN      string = "GTHEN"    // >	4
+	TT_SHIFTR     string = "SHIFTR"   // >> 5
 	TT_GEQ        string = "GEQ"      // >=	4
 	TT_KAND       string = "KAND"     // &	5
 	TT_AND        string = "AND"      // &&	6
@@ -224,6 +230,9 @@ func Lex(text_ptr *string, f_name string) *[]Token {
 				if current_char == '=' {
 					Tokens = append(Tokens, Token{section.current_section.section, section.current_section.ln_count, TT_LEQ, "<="})
 					l_advance()
+				} else if current_char == '<' {
+					Tokens = append(Tokens, Token{section.current_section.section, section.current_section.ln_count, TT_SHIFTL, "<<"})
+					l_advance()
 				} else {
 					Tokens = append(Tokens, Token{section.current_section.section, section.current_section.ln_count, TT_LTHEN, "<"})
 				}
@@ -232,6 +241,9 @@ func Lex(text_ptr *string, f_name string) *[]Token {
 				l_advance()
 				if current_char == '=' {
 					Tokens = append(Tokens, Token{section.current_section.section, section.current_section.ln_count, TT_GEQ, ">="})
+					l_advance()
+				} else if current_char == '>' {
+					Tokens = append(Tokens, Token{section.current_section.section, section.current_section.ln_count, TT_SHIFTR, ">>"})
 					l_advance()
 				} else {
 					Tokens = append(Tokens, Token{section.current_section.section, section.current_section.ln_count, TT_GTHEN, ">"})
@@ -443,9 +455,30 @@ func Lex(text_ptr *string, f_name string) *[]Token {
 						NewError("InvalidCompilerFlagError", "A invalid compiler flag was found at ", currentPos(), true)
 					}
 				}
+			case "^":
+				Tokens = append(Tokens, Token{section.current_section.section, section.current_section.ln_count, TT_BITXOR, "^"})
+				l_advance()
 			default:
 				if strings.Contains(chars, string(current_char)) {
-					Tokens = append(Tokens, make_id())
+					if current_char == 'b' {
+						l_advance()
+						if current_char == '&' {
+							Tokens = append(Tokens, Token{section.current_section.section, section.current_section.ln_count, TT_BITAND, "b&"})
+							l_advance()
+						} else if current_char == '|' {
+							Tokens = append(Tokens, Token{section.current_section.section, section.current_section.ln_count, TT_BITOR, "b|"})
+							l_advance()
+						} else if current_char == '!' {
+							Tokens = append(Tokens, Token{section.current_section.section, section.current_section.ln_count, TT_BITNOT, "b!"})
+							l_advance()
+						} else {
+							current_char = text[text_position-1]
+							text_position--
+							Tokens = append(Tokens, make_id())
+						}
+					} else {
+						Tokens = append(Tokens, make_id())
+					}
 				} else if strings.Contains(numbers, string(current_char)) {
 					Tokens = append(Tokens, make_number())
 				} else {

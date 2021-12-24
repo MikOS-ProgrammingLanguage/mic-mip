@@ -17,8 +17,9 @@ var STRUCTS map[string][]Node = make(map[string][]Node) // holds all structs and
 var GLOBALS map[string]Node = make(map[string]Node)
 var BOOL bool = false
 var PREV_IF bool = false
-
+var LOOP bool = false
 var global bool = false
+var CURRENT_LN int
 
 // parse that shit wohooooooo
 func Parse(Tokens *[]Token, Illegal_names []string) RootNode {
@@ -48,6 +49,7 @@ func p_advance() {
 	pos++
 	if pos < len(tokens) {
 		current_token = tokens[pos]
+		CURRENT_LN = current_token.ln_count
 	} else {
 		current_token = Token{}
 		is_eot = true
@@ -218,10 +220,23 @@ func p_make_struct_args(name, type_ string, is_ptr, is_n_ptr bool) {
 */
 func p_factor() LiteralNode {
 	tok := current_token
+	if current_token.ln_count != CURRENT_LN {
+		return UniversalNone{}
+	}
 	var ptrs int = 0
 	var deref bool = false
 	var not bool = false
+	var minus bool = false
+	var bit_not = false
 	// returns either a func_call, var_name or array_slcie
+	fmt.Println(current_token)
+	if tok.type_ == TT_MINUS {
+		minus = true
+		p_advance()
+	} else if tok.type_ == TT_BITNOT {
+		bit_not = true
+		p_advance()
+	}
 
 	if tok.type_ == TT_MUL {
 		ptrs = getPointers()
@@ -243,33 +258,33 @@ func p_factor() LiteralNode {
 				arr_pos := p_expr()
 				if current_token.type_ == TT_RBRK {
 					p_advance()
-					return ListSliceNode{Name: tok.value, Pos: arr_pos, Ptrs: ptrs, Deref: deref, Not: not}
+					return ListSliceNode{Name: tok.value, Pos: arr_pos, Ptrs: ptrs, Deref: deref, Not: not, Minus: minus, BitNot: bit_not}
 				} else {
 					NewError("ArrayNotClosed", "A array was assagnid with '[' but no ']' was found. ", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
 				}
 			}
-			return VarNameNode{tok.value, ptrs, deref, not}
+			return VarNameNode{tok.value, ptrs, deref, not, minus, bit_not}
 		} else if StringInMap(tok.value, FUNCTIONS) {
 			call_name := tok.value
 			if current_token.type_ == TT_LPAREN {
 				p_advance()
 				call_args := p_func_call_parse(TT_RPAREN, Arg_len(FUNCTIONS[call_name]))
 				p_advance()
-				return FuncCallNode{Call_name: call_name, Func_parse: call_args}
+				return FuncCallNode{Call_name: call_name, Func_parse: call_args, Minus: minus, BitNot: bit_not}
 			}
 		} else {
 			NewError("RefferenceError", "The refferenced var, func or struct is not defined", fmt.Sprintf("%s at ln %d", tok.section, tok.ln_count), true)
 		}
 	}
 	p_advance()
-	return DirectNode{Type_: tok.type_, Value: tok.value}
+	return DirectNode{Type_: tok.type_, Value: tok.value, Minus: minus, BitNot: bit_not}
 }
 func p_term() LiteralNode {
 	ops := []string{TT_MUL, TT_DIV}
 	return binOp(true, false, ops)
 }
 func p_expr() LiteralNode {
-	ops := []string{TT_PLUS, TT_MINUS}
+	ops := []string{TT_PLUS, TT_MINUS, TT_SHIFTL, TT_SHIFTR, TT_BITAND, TT_BITOR, TT_BITXOR}
 	return binOp(false, true, ops)
 }
 
@@ -285,10 +300,11 @@ func p_bool_expr() LiteralNode {
 		TT_NOT,
 		TT_NEQ,
 	}
+	var current_ln int = current_token.ln_count
 	var left LiteralNode
 	BOOL = true
 	left = p_expr()
-	for StringInSlice(current_token.type_, bool_ops) && !is_eot {
+	for StringInSlice(current_token.type_, bool_ops) && !is_eot && CURRENT_LN == current_ln {
 		op_tok := current_token
 		p_advance()
 
@@ -303,13 +319,14 @@ func p_bool_expr() LiteralNode {
 // makes a binOp node and returns it
 func binOp(factor, term bool, ops []string) LiteralNode {
 	var left LiteralNode
+	var current_ln int = current_token.ln_count
 	if term {
 		left = p_term()
 	} else if factor {
 		left = p_factor()
 	}
 
-	for StringInSlice(current_token.type_, ops) && !is_eot {
+	for StringInSlice(current_token.type_, ops) && !is_eot && CURRENT_LN == current_ln {
 		op_tok := current_token
 		p_advance()
 
@@ -329,7 +346,7 @@ func binOp(factor, term bool, ops []string) LiteralNode {
 // makes an assignement with -> type name([expr()]) = expr()
 func p_assign(type_ string, glob bool) Node {
 	p_advance()
-
+	CURRENT_LN = current_token.ln_count
 	// gets all pointers behind the type
 	ptrs := getPointers()
 
@@ -428,12 +445,12 @@ func p_reassign(ptr bool) Node {
 	if ptr {
 		ptrs = getPointers()
 	}
+	CURRENT_LN = current_token.ln_count
 	name := getName()
 	p_advance()
 	/*if StringInMap(name.value, GLOBALS) {
 		glob = true
 	}*/
-
 	if current_token.type_ == TT_LBRK {
 		p_advance()
 		arr_idx := p_expr()
@@ -470,6 +487,7 @@ func p_reassign(ptr bool) Node {
 		}
 	} else {
 		// make error
+		fmt.Println(current_token)
 		NewError("UnknownOperatorError", "Expected a reassignement, but no ?= or any other operator was found", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
 	}
 	return ReAssignmentNode{}
@@ -638,6 +656,7 @@ func p_mikas() AsmFunctionNode {
 func p_if(elif bool) IfNode {
 	var bool_block LiteralNode
 	p_advance()
+	CURRENT_LN = current_token.ln_count
 
 	if current_token.type_ == TT_LPAREN {
 		p_advance()
@@ -703,9 +722,46 @@ func p_else() ElseNode {
 	return ElseNode{}
 }
 
-// makes a for statement and returns it
-func p_for() ForNode {
-	return ForNode{}
+// makes a while statement and returns it
+func p_while() WhileNode {
+	LOOP = true
+	var bool_block LiteralNode
+	p_advance()
+	CURRENT_LN = current_token.ln_count
+
+	if current_token.type_ == TT_LPAREN {
+		p_advance()
+		bool_block = p_bool_expr()
+		if current_token.type_ == TT_RPAREN {
+			p_advance()
+			if current_token.type_ == TT_LCURL {
+				p_advance()
+				var code []Node
+				for current_token.type_ != TT_EOF && current_token.type_ != TT_RCURL {
+					if current_token.type_ == TT_ID || current_token.type_ == TT_MUL {
+						res := mkID()
+						//fmt.Println(res)
+						//fmt.Println(VARS)
+						code = append(code, res)
+					} else if current_token.type_ == TT_DEBUG {
+						code = append(code, DebugNode{})
+					} else {
+						NewError("ParsingError", "A function decleration, struct decleration, variable assignement or refference was expected but not found", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+					}
+				}
+				p_advance()
+				ret_while := WhileNode{bool_: bool_block, codeblock: code}
+				return ret_while
+			} else {
+				NewError("CodeBlockExpectedError", "A '{' was expexted after while (bool) ...", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+			}
+		} else {
+			NewError("ParantheseExpectedError", "After bool condition a ')' was expected but not found.", fmt.Sprintf("%s at kn %d", current_token.section, current_token.ln_count), true)
+		}
+	} else {
+		NewError("ParantheseExpectedError", "After 'while' condition a '(' was expected but not found.", fmt.Sprintf("%s at kn %d", current_token.section, current_token.ln_count), true)
+	}
+	return WhileNode{}
 }
 
 /*-------------------expr, factor and binary op-------------------*/
@@ -726,11 +782,20 @@ func mkID() Node {
 		// check if return is possible
 		if func_on {
 			p_advance()
+			CURRENT_LN = current_token.ln_count
 			ret := p_expr()
 			node = ReturnNode{Return_val: ret}
 		} else {
 			NewError("ReturnNotExpected", "You tried to return without being in a function.", fmt.Sprintf("%s at ln %d", tok.section, tok.ln_count), true)
 		}
+	} else if tok.value == "break" && LOOP {
+		node = DirectNode{"", "break", false, false}
+		p_advance()
+		LOOP = false
+	} else if tok.value == "continue" && LOOP {
+		node = DirectNode{"", "continue", false, false}
+		p_advance()
+		LOOP = false
 	} else if tok.value == "mikf" {
 		node = p_mikf()
 		//fmt.Println(node)
@@ -756,9 +821,7 @@ func mkID() Node {
 			PREV_IF = false
 		}
 	} else if tok.value == "while" {
-		// make while
-	} else if tok.value == "for" {
-		// make for
+		node = p_while()
 	} else if StringInMap(getName().value, VARS) || StringInMap(getName().value, FUNCTIONS) || StringInMap(getName().value, GLOBALS) || tok.type_ == TT_MUL {
 		if tok.type_ == TT_MUL {
 			node = p_reassign(true)

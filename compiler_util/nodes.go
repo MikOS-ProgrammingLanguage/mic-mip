@@ -65,8 +65,8 @@ type ForNode struct {
 	// codeblock
 }
 type WhileNode struct {
-	// bool statement
-	// codeblock
+	bool_     LiteralNode
+	codeblock []Node
 }
 type ReturnNode struct {
 	Return_val LiteralNode
@@ -143,17 +143,21 @@ type BoolOpNode struct {
 
 // Third class nodes
 type ListSliceNode struct {
-	Name  string
-	Pos   LiteralNode
-	Ptrs  int
-	Deref bool
-	Not   bool
+	Name   string
+	Pos    LiteralNode
+	Ptrs   int
+	Deref  bool
+	Not    bool
+	Minus  bool
+	BitNot bool
 }
 type VarNameNode struct {
-	Name  string
-	Ptrs  int
-	Deref bool
-	Not   bool
+	Name   string
+	Ptrs   int
+	Deref  bool
+	Not    bool
+	Minus  bool
+	BitNot bool
 }
 type DataTypeNode struct {
 	Dtype string
@@ -162,14 +166,22 @@ type DataTypeNode struct {
 type FuncCallNode struct {
 	Call_name  string
 	Func_parse []LiteralNode // Subnode arr bcs -> call_name(expr(), expr(), ...n)
+	Minus      bool
+	BitNot     bool
 }
 
 type DirectNode struct {
-	Type_ string
-	Value string
+	Type_  string
+	Value  string
+	Minus  bool
+	BitNot bool
 }
 
 // -------------- 1 Interface implement --------------
+
+func (dir DirectNode) Is_1_node() bool {
+	return true
+}
 
 // implements is_1_node for UniversalNone
 func (unon UniversalNone) Is_1_node() bool {
