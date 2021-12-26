@@ -64,7 +64,7 @@ to use all the files and functions in it.
 
 If you want to use a package from Github, you can use
 
-    ./mip -install <github link>
+    sudo ./mip -install <github link>
 
 to install it. You can now also use it with
 
@@ -76,7 +76,7 @@ The pkg name needs to be provided by the repo or with the List command.
 
 To remove a installed package just type
 
-    ./mip -remove <pkg_name>
+    sudo ./mip -remove <pkg_name>
 
 This will remove the pkg from mik-src. Hence, you can't refference it with
 

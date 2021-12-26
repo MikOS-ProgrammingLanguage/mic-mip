@@ -1,0 +1,4 @@
+@section("test.milk")
+int i = 10
+
+@secend

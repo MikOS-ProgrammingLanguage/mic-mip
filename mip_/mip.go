@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"mik/mic_/compiler_util"
 	"mik/mip_/mip_util"
 	"os"
@@ -19,7 +20,6 @@ func main() {
 	// Checks if any flag was specified
 	if *installPtr != "" || *listPtr != false || *removePtr != "" || *addPkgPtr != "" {
 		// Check which is active and if more than one is active
-
 		if *installPtr != "" && *listPtr == false && *removePtr == "" && *addPkgPtr == "" {
 			// installs a specified github url
 			mip_util.InstallGit(installPtr)
@@ -33,7 +33,8 @@ func main() {
 			mip_util.RemovePkg(removePtr)
 		} else if *addPkgPtr != "" && *installPtr == "" && *listPtr == false && *removePtr == "" {
 			// adds a package (at specified path) to source
-			mip_util.AddPkg(addPkgPtr)
+			ditch_nil := ""
+			mip_util.AddPkg(addPkgPtr, &ditch_nil)
 			os.Exit(0)
 		} else {
 			// Too many args
@@ -41,6 +42,6 @@ func main() {
 		}
 	} else {
 		// No args specified
-		compiler_util.NewError("No args Specified", "", "", false)
+		fmt.Println("Usage:\n\t-install <github_link> to install a pkg from github\n\t-list to list all the installed packages\n\t-remove <pkg_name> to remove a pkg\n\t-add_pkg <dir_path> to add a dir to mik-srd")
 	}
 }
