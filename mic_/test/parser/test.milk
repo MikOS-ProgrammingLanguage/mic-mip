@@ -1,0 +1,3 @@
+mikf the_test_func() -> void {
+    global int test_int = 100
+}

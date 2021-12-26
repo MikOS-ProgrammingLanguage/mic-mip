@@ -1,0 +1,12 @@
+=== ToDo ===
+- Parser
+- Generator
+- Preprocessor
+- Type checking
+
+== Parser ==
+    for
+    while
+    if
+    else 
+    elif
