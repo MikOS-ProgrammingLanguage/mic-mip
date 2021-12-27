@@ -11,7 +11,7 @@ func Generate(ast *RootNode, target, out_pth string) bool {
 		// generate web assembly
 		return FAILURE
 	case "asm":
-		// generate and assemble branchless asm
+		return GenerateAsm()
 		return FAILURE
 	default:
 		return FAILURE

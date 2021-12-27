@@ -2,6 +2,8 @@ package compiler_util
 
 import (
 	"fmt"
+	"reflect"
+	"strings"
 )
 
 var tokens []Token
@@ -20,6 +22,11 @@ var PREV_IF bool = false
 var LOOP bool = false
 var global bool = false
 var CURRENT_LN int
+
+var expect_t bool = false
+var expect_ret = false
+var func_ret_expect string
+var current_expected_t string
 
 // parse that shit wohooooooo
 func Parse(Tokens *[]Token, Illegal_names []string) RootNode {
@@ -43,6 +50,13 @@ func Parse(Tokens *[]Token, Illegal_names []string) RootNode {
 }
 
 /*-------------------Get and increment methods-------------------*/
+
+// compares types to find errors
+func type_compare(comp string) {
+	if strings.ToLower(current_expected_t) != strings.ToLower(comp) && expect_t {
+		NewError("TypeMissmatchError", fmt.Sprintf("%s was expected but got %s", strings.ToLower(current_expected_t), strings.ToLower(comp)), fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+	}
+}
 
 // increments the pos and sets the token if the position still is in the index of tokens
 func p_advance() {
@@ -251,10 +265,16 @@ func p_factor() LiteralNode {
 		tok = getName()
 		p_advance()
 		if StringInMap(tok.value, VARS) {
+			if reflect.TypeOf(VARS[tok.value]).Name() == "ArrAssignementNode" {
+				type_compare(VARS[tok.value].(ArrAssignementNode).Asgn_type)
+			}
 			// return list slice if [] is found
 			if current_token.type_ == TT_LBRK {
+				current_expected_t = TT_INT
+				expect_t = true
 				p_advance()
 				arr_pos := p_expr()
+
 				if current_token.type_ == TT_RBRK {
 					p_advance()
 					return ListSliceNode{Name: tok.value, Pos: arr_pos, Ptrs: ptrs, Deref: deref, Not: not, Minus: minus, BitNot: bit_not}
@@ -262,9 +282,22 @@ func p_factor() LiteralNode {
 					NewError("ArrayNotClosed", "A array was assagnid with '[' but no ']' was found. ", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
 				}
 			}
+			comp_t := VARS[tok.value].(AssignemntNode)
+			type_compare(comp_t.Asgn_type)
 			return VarNameNode{tok.value, ptrs, deref, not, minus, bit_not}
 		} else if StringInMap(tok.value, FUNCTIONS) {
 			call_name := tok.value
+			switch reflect.TypeOf(FUNCTIONS[call_name]).Name() {
+			case "FunctionNode":
+				type_compare(FUNCTIONS[call_name].(FunctionNode).Ret_type)
+				break
+			case "AsmFunctionNode":
+				type_compare(FUNCTIONS[call_name].(AsmFunctionNode).Ret_type)
+				break
+			default:
+				break
+			}
+			expect_t = false
 			if current_token.type_ == TT_LPAREN {
 				p_advance()
 				call_args := p_func_call_parse(TT_RPAREN, Arg_len(FUNCTIONS[call_name]))
@@ -276,6 +309,7 @@ func p_factor() LiteralNode {
 		}
 	}
 	p_advance()
+	type_compare(tok.type_)
 	return DirectNode{Type_: tok.type_, Value: tok.value, Minus: minus, BitNot: bit_not}
 }
 func p_term() LiteralNode {
@@ -344,6 +378,8 @@ func binOp(factor, term bool, ops []string) LiteralNode {
 
 // makes an assignement with -> type name([expr()]) = expr()
 func p_assign(type_ string, glob bool) Node {
+	current_expected_t = type_
+	expect_t = true
 	p_advance()
 	CURRENT_LN = current_token.ln_count
 	// gets all pointers behind the type
@@ -370,6 +406,7 @@ func p_assign(type_ string, glob bool) Node {
 		p_advance()
 		var arr_len LiteralNode
 		if current_token.type_ != TT_RBRK {
+			current_expected_t = TT_INT
 			arr_len = p_expr()
 		} else {
 			// array needs to be initialized with zeros in the c file -> type name[] = 0
@@ -385,6 +422,7 @@ func p_assign(type_ string, glob bool) Node {
 				GLOBALS[assignement_name.value] = var_node
 				global = false
 			}
+			expect_t = false
 			return var_node
 		} else {
 			NewError("ArrayNotClosed", "A array was assagnid with '[' but no ']' was found. ", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
@@ -393,6 +431,7 @@ func p_assign(type_ string, glob bool) Node {
 		p_advance()
 		// make a typecast node if one is found
 		if current_token.type_ == TT_ID && current_token.value == "tcst" {
+			expect_t = false
 			p_advance()
 			if current_token.type_ == TT_LPAREN {
 				p_advance()
@@ -420,6 +459,7 @@ func p_assign(type_ string, glob bool) Node {
 				GLOBALS[assignement_name.value] = var_node
 				global = false
 			}
+			expect_t = false
 			return var_node
 		}
 	} else {
@@ -429,6 +469,7 @@ func p_assign(type_ string, glob bool) Node {
 			GLOBALS[assignement_name.value] = var_node
 			global = false
 		}
+		expect_t = false
 		return var_node
 	}
 	return AssignemntNode{}
@@ -446,19 +487,26 @@ func p_reassign(ptr bool) Node {
 	}
 	CURRENT_LN = current_token.ln_count
 	name := getName()
+
 	p_advance()
 	/*if StringInMap(name.value, GLOBALS) {
 		glob = true
 	}*/
 	if current_token.type_ == TT_LBRK {
 		p_advance()
+		current_expected_t = TT_INT
+		expect_t = true
 		arr_idx := p_expr()
+		expect_t = false
 		if current_token.type_ == TT_RBRK {
 			p_advance()
 			if current_token.type_ == TT_REASSGN || current_token.type_ == TT_PLUSEQ || current_token.type_ == TT_MINUSEQ || current_token.type_ == TT_MULEQ || current_token.type_ == TT_DIVEQ {
 				reassgn_t := current_token.value
 				p_advance()
+				current_expected_t = VARS[name.value].(ArrAssignementNode).Asgn_type
+				expect_t = true
 				content = p_expr()
+				expect_t = false
 				return ArrReAssignementNode{Reassgn_t: reassgn_t, Re_type: name.value, Ptrs: ptrs, Arr_idx: arr_idx, Content: content}
 			} else {
 				// make error
@@ -471,7 +519,10 @@ func p_reassign(ptr bool) Node {
 	} else if current_token.type_ == TT_REASSGN || current_token.type_ == TT_PLUSEQ || current_token.type_ == TT_MINUSEQ || current_token.type_ == TT_MULEQ || current_token.type_ == TT_DIVEQ {
 		reassgn_t := current_token.value
 		p_advance()
+		current_expected_t = VARS[name.value].(AssignemntNode).Asgn_type
+		expect_t = true
 		content := p_expr()
+		expect_t = false
 		ret_var := ReAssignmentNode{Reassgn_t: reassgn_t, Re_type: name.value, Ptrs: ptrs, Content: content}
 		return ret_var
 	} else if current_token.type_ == TT_LPAREN {
@@ -551,6 +602,10 @@ func p_mikf() Node {
 			p_advance()
 			if StringInSlice(current_token.value, TYPES) || StringInSlice(current_token.value, CUSTOM_TYPES) {
 				ret_type := current_token.value
+				if ret_type != "void" {
+					expect_ret = true
+					func_ret_expect = ret_type
+				}
 				p_advance()
 
 				if current_token.type_ == TT_LCURL {
@@ -574,6 +629,9 @@ func p_mikf() Node {
 					VARS = old_vars
 					AddGlobToVars(VARS, GLOBALS)
 					FUNCTIONS[f_name] = ret_func
+					if expect_ret {
+						NewError("NoReturnError", "A return was expected but not found", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+					}
 					return ret_func
 				} else {
 					ret_func := FunctionNode{Decl: true, Func_name: f_name, Arg_parse: call_args, Ret_type: ret_type, Code_block: []Node{}}
@@ -778,10 +836,14 @@ func mkID() Node {
 		node = mkID()
 	} else if tok.value == "return" {
 		// check if return is possible
-		if func_on {
+		if func_on && expect_ret {
 			p_advance()
 			CURRENT_LN = current_token.ln_count
+			current_expected_t = func_ret_expect
+			expect_t = true
 			ret := p_expr()
+			expect_ret = false
+			expect_t = false
 			node = ReturnNode{Return_val: ret}
 		} else {
 			NewError("ReturnNotExpected", "You tried to return without being in a function.", fmt.Sprintf("%s at ln %d", tok.section, tok.ln_count), true)

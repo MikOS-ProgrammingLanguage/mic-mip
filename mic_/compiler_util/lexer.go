@@ -208,6 +208,7 @@ func Lex(text_ptr *string, f_name string) *[]Token {
 	var Tokens []Token
 	var sections []string
 
+	section.current_section.ln_count = -1
 	for !is_eof {
 		if in_mikas {
 			Tokens = append(Tokens, make_str()) // in case we are in mikas we just make everything a big str and append it
@@ -420,16 +421,12 @@ func Lex(text_ptr *string, f_name string) *[]Token {
 								sec_name := make_str().value
 
 								if current_char == ')' {
-									if section.current_section.section == "" {
-										if section.current_section.ln_count > 1 {
-											section.current_section.ln_count -= 1
-										}
-									}
 									section.prev_section = append(section.prev_section, section.current_section)
 									section.prev_sec_len++
 									section = position{prev_section: section.prev_section, prev_sec_len: section.prev_sec_len, current_section: primitive_position{sec_name, 1}}
 									sections = append(sections, sec_name)
 									l_advance()
+									section.current_section.ln_count = 1
 								} else {
 									NewError("ClosingParentheseExpectedError", "A closing parenthese expected after '@section(\"name\"' but not found at ", currentPos(), true)
 								}

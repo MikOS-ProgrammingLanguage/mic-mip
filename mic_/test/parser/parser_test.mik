@@ -1,5 +1,5 @@
 #yoink <test.milk>
-#yoink-src <test_pkg>
+//#yoink-src <test_pkg>
 //#yoink-lib <test_lib>
 
 void* test_void_ptr
@@ -10,8 +10,8 @@ i2[0] ?= 2000 + ****i
 int i3[i2[0]+3000000]
 int** i4 = &i3[10]
 
-**i4 ?= **i4 << -32 * 5
-**i4 ?= **i4 b& b!**i4
+//**i4 ?= **i4 << -32 * 5
+//**i4 ?= **i4 b& b!**i4
 
 if (!i2[0] || 2034+50) {
     helllo ?= "Wtf"
@@ -26,9 +26,10 @@ while (helllo != "wtf2") {
     continue
 }
 
-flt test_flt = 20.5
+int i10[100]
+flt test_flt = 25.0
 
-int type_check_int = test_flt
+//int type_check_int = test_flt
 
 flt** i5 = tcst(i4)
 

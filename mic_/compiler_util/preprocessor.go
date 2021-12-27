@@ -11,6 +11,7 @@ var Yoinked_files_src []string
 
 func Preprocess(text, pth *string) *string {
 	*pth = strings.ReplaceAll(*pth, "\\", "/")
+	new_pth := *pth
 	temp_pth := strings.Split(*pth, "/")
 	*pth = ""
 	for i, val := range temp_pth {
@@ -28,6 +29,7 @@ func Preprocess(text, pth *string) *string {
 	var ditch_nil string = ""
 	var new_txt *string = &ditch_nil
 
+	*new_txt += "@section(\"" + new_pth + "\")"
 	for _, val := range strings.Split(*text, "\n") {
 		if (strings.HasPrefix(val, "#yoink <") || strings.HasPrefix(val, "#yoink-src <")) && strings.HasSuffix(val, ">") {
 			var yoink_name string = ""
@@ -38,7 +40,7 @@ func Preprocess(text, pth *string) *string {
 					continue
 				}
 				// add a section, append the data to the text and close the section
-				*new_txt += fmt.Sprintf("@section(\"%s\")\n", yoink_name)
+				*new_txt += fmt.Sprintf("\n@section(\"%s\")\n", yoink_name)
 				data, err := os.ReadFile(*pth + yoink_name)
 				if err != nil {
 					panic(err)
@@ -70,6 +72,7 @@ func Preprocess(text, pth *string) *string {
 			*new_txt += val + "\n"
 		}
 	}
+	*new_txt += "@secend"
 	return new_txt
 }
 
