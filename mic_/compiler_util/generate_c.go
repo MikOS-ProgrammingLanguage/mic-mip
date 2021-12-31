@@ -2,6 +2,7 @@ package compiler_util
 
 import (
 	"fmt"
+	jsonconf "mik/mic_/json_conf"
 	"os"
 	"reflect"
 	"strings"
@@ -348,7 +349,12 @@ func gen_c(node Node) string {
 	return ""
 }
 
-func GenerateC(ast_ *RootNode, out_pth string) bool {
+func GenerateC(ast_ *RootNode, out_pth, inptPtr string, conf jsonconf.Config) bool {
+	if conf.CLibs != nil {
+		lib_code, _, _ := jsonconf.MakeCLib(conf, inptPtr)
+		*none_main_code_gc += *lib_code
+	}
+
 	ast_gc = ast_
 	gen_c_advance()
 	for !is_eoast_gc {

@@ -25,7 +25,7 @@ func makeColorPalette() colors {
 it's position, and if it should quit. It then prints the error and quits if told to*/
 func NewError(err_type, description, position string, quit bool) {
 	c_palette := makeColorPalette()
-	fmt.Println(string(c_palette.colorRed), "\r[ERROR]"+err_type+"! "+description+" At"+position, string(c_palette.colorReset))
+	fmt.Println(string(c_palette.colorRed), "\r[ERROR]"+err_type+"! "+description+" At "+position, string(c_palette.colorReset))
 	if quit {
 		os.Exit(0)
 	}
@@ -35,7 +35,7 @@ func NewError(err_type, description, position string, quit bool) {
 it's position, and if it should quit. It then prints the error and quits if told to*/
 func NewWarning(err_type, description, position string, quit bool) {
 	c_palette := makeColorPalette()
-	fmt.Println(string(c_palette.colorPurple), "\r[WARNING]"+err_type+" "+description+" "+position, string(c_palette.colorReset))
+	fmt.Println(string(c_palette.colorPurple), "\r[WARNING]"+err_type+" "+description+" At "+position, string(c_palette.colorReset))
 	if quit {
 		os.Exit(0)
 	}
@@ -45,7 +45,7 @@ func NewWarning(err_type, description, position string, quit bool) {
 it's position, and if it should quit. It then prints the error and quits if told to*/
 func NewCritical(err_type, description, position string, quit bool) {
 	c_palette := makeColorPalette()
-	fmt.Println(string(c_palette.colorBlue), "\r[CRITICAL]"+err_type+"! "+description+" "+position, string(c_palette.colorReset))
+	fmt.Println(string(c_palette.colorBlue), "\r[CRITICAL]"+err_type+"! "+description+" At "+position, string(c_palette.colorReset))
 	if quit {
 		os.Exit(0)
 	}
@@ -55,7 +55,7 @@ func NewCritical(err_type, description, position string, quit bool) {
 it's position, and if it should quit. It then prints the error and quits if told to*/
 func NewInfo(err_type, description, position string, quit bool) {
 	c_palette := makeColorPalette()
-	fmt.Println(string(c_palette.colorYellow), "\r[INFO]"+err_type+" "+description+" "+position, string(c_palette.colorReset))
+	fmt.Println(string(c_palette.colorYellow), "\r[INFO]"+err_type+" "+description+" At "+position, string(c_palette.colorReset))
 	if quit {
 		os.Exit(0)
 	}
@@ -65,7 +65,7 @@ func NewInfo(err_type, description, position string, quit bool) {
 it's position, and if it should quit. It then prints the error and quits if told to*/
 func NewSuccess(err_type, description, position string, quit bool) {
 	c_palette := makeColorPalette()
-	fmt.Println(string(c_palette.colorGreen), "\r[SUCCESS]"+err_type+"! "+description+" "+position, string(c_palette.colorReset))
+	fmt.Println(string(c_palette.colorGreen), "\r[SUCCESS]"+err_type+"! "+description+" At "+position, string(c_palette.colorReset))
 	if quit {
 		os.Exit(0)
 	}

@@ -1,0 +1,18 @@
+{
+    "CLibs": [
+        {
+            "dir": "false",
+            "name": "stdfile",
+            "path": "test_lib.c",
+            "FuncNames": ["test_the_fucking"],
+            "VarNames": ["test_glob_val"]
+        },
+        {
+            "dir": "true",
+            "name": "stdlib",
+            "path": "/test_c_lib/",
+            "FuncNames": ["return_test_lib_f1", "return_test_lib_f2"],
+            "VarNames": []
+        }
+    ]
+}

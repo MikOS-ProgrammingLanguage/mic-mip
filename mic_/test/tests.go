@@ -176,8 +176,9 @@ func testParseExpr(target int) {
 	var test string = "10+20*30*50+10+20*30*50+10+20*30*50+10+20*30*50+10+20*30*50+10+20*30*50+10+20*30*50+10+20*30*50+10+20*30*50+10+20*30*50+10+20*30*50+10+20*30*50+10+20*30*50+10+20*30*50+10+20*30*50+10+20*30*50+10+20*30*50+10+20*30*50+10+20*30*50+10+20*30*50"
 	a := compiler_util.Lex(&test, "")
 	illegal_name := []string{"", ""}
+	illegal_name2 := []string{"", ""}
 	start := time.Now()
-	_ = compiler_util.Parse(a, illegal_name)
+	_ = compiler_util.Parse(a, illegal_name, illegal_name2, []string{""})
 	expr_parse_success = true
 	compiler_util.NewSuccess("Parser Test #1✅", fmt.Sprintf("It took %s", time.Since(start)), "", false)
 }

@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"mik/mic_/compiler_util"
 	"mik/mic_/install"
+	jsonconf "mik/mic_/json_conf"
 	"mik/mic_/test"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -30,12 +32,25 @@ func main() {
 
 	inptPtr := flag.String("i", "", "input flag")
 	outpPtr := flag.String("o", "mik", "output flag")
+	configPtr := flag.String("cnfg", "", "Path of a config file (mikConf.json)")
 	cTarget := flag.Bool("c", true, "Specifies the compiling target.")
 	asmTarget := flag.Bool("asm", false, "Sets target flag to asm")
 	wasmTarget := flag.Bool("wasm", false, "Sets target to wasm")
 	installPtr := flag.Bool("install", false, "wether the config should be created or not")
+	ignorePtr := flag.String("ign", "", "Ignore a section put in \"\" and seperate by comma")
 
 	flag.Parse()
+
+	var ign_sections []string
+	ign_sections = append(ign_sections, strings.Split(*ignorePtr, ":")...)
+
+	var conf jsonconf.Config
+
+	if *configPtr != "" {
+		conf = jsonconf.Configure(*configPtr)
+	} else {
+		conf.CLibs = nil
+	}
 
 	// sets compiling target
 	var tar string = "c"
@@ -68,12 +83,12 @@ func main() {
 		txt = string(temp_txt)
 		new_txt := compiler_util.Preprocess(&txt, inptPtr)
 		tokens := compiler_util.Lex(new_txt, "lexer_test.mik")
+		_, func_name, var_name := jsonconf.MakeCLib(conf, *inptPtr)
 
-		var illegal_name []string = []string{""}
-		ast := compiler_util.Parse(tokens, illegal_name)
+		ast := compiler_util.Parse(tokens, func_name, var_name, ign_sections)
 
 		// generate code
-		comp_success := compiler_util.Generate(&ast, tar, *outpPtr)
+		comp_success := compiler_util.Generate(&ast, tar, *outpPtr, *inptPtr, conf)
 		if comp_success {
 			compiler_util.NewSuccess("Succesfully compiled", fmt.Sprintf("In %s. To %s.c", time.Since(start).String(), *outpPtr), "", false)
 		}

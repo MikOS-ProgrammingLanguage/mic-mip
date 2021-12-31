@@ -10,6 +10,10 @@ i2[0] ?= 2000 + ****i
 int i3[i2[0]+3000000]
 int** i4 = &i3[10]
 
+//int test_re_val = test_the_fucking(20, 30, "hello world")
+//int test_lib_re_val = return_test_lib_f1()
+//int test_lib_re_val2 = return_test_lib_f2()
+
 //**i4 ?= **i4 << -32 * 5
 //**i4 ?= **i4 b& b!**i4
 
@@ -25,6 +29,10 @@ while (helllo != "wtf2") {
     helllo ?= "wtf2"
     continue
 }
+
+@section("test")
+int test_sec_int = 10
+@secend
 
 int i10[100]
 flt test_flt = 25.0
@@ -73,4 +81,9 @@ test2* test_struct
 int yes = test_struct->a
 test yes_arr = test_struct->c[5]
 int yes_arr2 = yes_arr.a
-int yes_c = test_struct->aa->a
+int yes_c = test_struct->aa.a
+
+mikf add_two_nums(int a, int b) -> test2 {
+    test2 aa
+    return aa
+}

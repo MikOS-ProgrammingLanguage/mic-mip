@@ -7,7 +7,9 @@ import (
 )
 
 var tokens []Token
-var illegal_names []string
+var func_names []string
+var var_names []string
+
 var pos int = -1
 var current_token Token
 var is_eot = false
@@ -29,12 +31,25 @@ var func_ret_expect string
 var current_expected_t string
 
 // parse that shit wohooooooo
-func Parse(Tokens *[]Token, Illegal_names []string) RootNode {
+func Parse(Tokens *[]Token, Func_names, Var_names, ign_sections []string) RootNode {
 	tokens = *Tokens
-	illegal_names = Illegal_names
+	func_names = Func_names
+	var_names = Var_names
 	p_advance()
 
 	for current_token.type_ != TT_EOF {
+		if StringInSlice(current_token.section, ign_sections) {
+			if current_token.type_ == TT_ID || current_token.type_ == TT_MUL {
+				_ = mkID()
+				//fmt.Println(res)
+				//fmt.Println(VARS)
+			} else if current_token.type_ == TT_DEBUG {
+				root_node = root_node.AddNodeToRoot(DebugNode{})
+			} else {
+				NewError("ParsingError", "A function decleration, struct decleration, variable assignement or refference was expected but not found", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+			}
+			continue
+		}
 		if current_token.type_ == TT_ID || current_token.type_ == TT_MUL {
 			res := mkID()
 			//fmt.Println(res)
@@ -84,19 +99,11 @@ func getToken(num int) Token {
 // tries to make a name for example -> hello.id is legal
 func getName() Token {
 	name_node := current_token
-	if getToken(1).type_ == TT_DOT && getToken(2).type_ == TT_ID && (!StringInSlice(getToken(2).value, TYPES) && !StringInSlice(getToken(2).value, INSTRUCTIONS) && !StringInSlice(getToken(2).value, CUSTOM_TYPES)) {
+	if (getToken(1).type_ == TT_DOT || getToken(1).type_ == TT_ARROW) && getToken(2).type_ == TT_ID && (!StringInSlice(getToken(2).value, TYPES) && !StringInSlice(getToken(2).value, INSTRUCTIONS) && !StringInSlice(getToken(2).value, CUSTOM_TYPES)) {
 		// iterates through the tokens for as long as it's a continous name with dots like -> hello.type
-		for getToken(1).type_ == TT_DOT && getToken(2).type_ == TT_ID && (!StringInSlice(getToken(2).value, TYPES) && !StringInSlice(getToken(2).value, INSTRUCTIONS) && !StringInSlice(getToken(2).value, CUSTOM_TYPES)) {
-			p_advance()
-			name_node.value += "."
+		for (getToken(1).type_ == TT_DOT || getToken(1).type_ == TT_ARROW) && getToken(2).type_ == TT_ID && (!StringInSlice(getToken(2).value, TYPES) && !StringInSlice(getToken(2).value, INSTRUCTIONS) && !StringInSlice(getToken(2).value, CUSTOM_TYPES)) {
 			p_advance()
 			name_node.value += current_token.value
-		}
-	} else if getToken(1).type_ == TT_ARROW && getToken(2).type_ == TT_ID && (!StringInSlice(getToken(2).value, TYPES) && !StringInSlice(getToken(2).value, INSTRUCTIONS) && !StringInSlice(getToken(2).value, CUSTOM_TYPES)) {
-		// iterates through the tokens for as long as it's a continous name with arrows like -> hello->type
-		for getToken(1).type_ == TT_ARROW && getToken(2).type_ == TT_ID && (!StringInSlice(getToken(2).value, TYPES) && !StringInSlice(getToken(2).value, INSTRUCTIONS) && !StringInSlice(getToken(2).value, CUSTOM_TYPES)) {
-			p_advance()
-			name_node.value += "->"
 			p_advance()
 			name_node.value += current_token.value
 		}
@@ -143,11 +150,16 @@ func p_func_parse(end_type string) []Node {
 }
 
 // gets the inputed tokens at length
-func p_func_call_parse(end_type string, expected_len int) []LiteralNode {
+func p_func_call_parse(end_type string, expected_len int, len_expected bool) []LiteralNode {
 	var vars []LiteralNode
 	var iters int = 0
 
-	for current_token.type_ != end_type && iters < expected_len {
+	for current_token.type_ != end_type {
+		if len_expected {
+			if iters > expected_len {
+				break
+			}
+		}
 		var node LiteralNode
 
 		tok := current_token
@@ -182,11 +194,30 @@ func p_make_struct_args(name, type_ string, is_ptr, is_n_ptr bool) {
 			current_struct_attr2 := current_struct_attr.(AssignemntNode)
 			if StringInSlice(current_struct_attr2.Asgn_type, CUSTOM_TYPES) {
 				if is_ptr {
+					var is_ptr_ bool = false
+					var is_n_ptr_ bool = false
+					if current_struct_attr2.Ptrs > 0 {
+						is_ptr_ = true
+						is_n_ptr_ = false
+					} else {
+						is_ptr_ = false
+						is_n_ptr_ = true
+					}
 					VARS[name+"."+current_struct_attr2.Var_name] = AssignemntNode{current_struct_attr2.Asgn_type, current_struct_attr2.Ptrs, false, name + "." + current_struct_attr2.Var_name, current_struct_attr2.Content}
-					p_make_struct_args(name+"->"+current_struct_attr2.Var_name, current_struct_attr2.Asgn_type, true, false)
+					p_make_struct_args(name+"->"+current_struct_attr2.Var_name, current_struct_attr2.Asgn_type, is_ptr_, is_n_ptr_)
+					//p_make_struct_args(name+"->"+current_struct_attr2.Var_name, current_struct_attr2.Asgn_type, true, false)
 				} else {
+					var is_ptr_ bool = false
+					var is_n_ptr_ bool = false
+					if current_struct_attr2.Ptrs > 0 {
+						is_ptr_ = true
+						is_n_ptr_ = false
+					} else {
+						is_ptr_ = false
+						is_n_ptr_ = true
+					}
 					VARS[name+"->"+current_struct_attr2.Var_name] = AssignemntNode{current_struct_attr2.Asgn_type, current_struct_attr2.Ptrs, false, name + "->" + current_struct_attr2.Var_name, current_struct_attr2.Content}
-					p_make_struct_args(name+"."+current_struct_attr2.Var_name, current_struct_attr2.Asgn_type, false, true)
+					p_make_struct_args(name+"."+current_struct_attr2.Var_name, current_struct_attr2.Asgn_type, is_ptr_, is_n_ptr_)
 				}
 			} else {
 				if is_n_ptr {
@@ -264,7 +295,7 @@ func p_factor() LiteralNode {
 	if tok.type_ == TT_ID {
 		tok = getName()
 		p_advance()
-		if StringInMap(tok.value, VARS) {
+		if StringInMap(tok.value, VARS) || StringInSlice(tok.value, var_names) {
 			if reflect.TypeOf(VARS[tok.value]).Name() == "ArrAssignementNode" {
 				type_compare(VARS[tok.value].(ArrAssignementNode).Asgn_type)
 			}
@@ -285,26 +316,34 @@ func p_factor() LiteralNode {
 			comp_t := VARS[tok.value].(AssignemntNode)
 			type_compare(comp_t.Asgn_type)
 			return VarNameNode{tok.value, ptrs, deref, not, minus, bit_not}
-		} else if StringInMap(tok.value, FUNCTIONS) {
+		} else if StringInMap(tok.value, FUNCTIONS) || StringInSlice(tok.value, func_names) {
 			call_name := tok.value
-			switch reflect.TypeOf(FUNCTIONS[call_name]).Name() {
-			case "FunctionNode":
-				type_compare(FUNCTIONS[call_name].(FunctionNode).Ret_type)
-				break
-			case "AsmFunctionNode":
-				type_compare(FUNCTIONS[call_name].(AsmFunctionNode).Ret_type)
-				break
-			default:
-				break
+			if StringInMap(tok.value, FUNCTIONS) {
+				switch reflect.TypeOf(FUNCTIONS[call_name]).Name() {
+				case "FunctionNode":
+					type_compare(FUNCTIONS[call_name].(FunctionNode).Ret_type)
+					break
+				case "AsmFunctionNode":
+					type_compare(FUNCTIONS[call_name].(AsmFunctionNode).Ret_type)
+					break
+				default:
+					break
+				}
 			}
 			expect_t = false
 			if current_token.type_ == TT_LPAREN {
 				p_advance()
-				call_args := p_func_call_parse(TT_RPAREN, Arg_len(FUNCTIONS[call_name]))
+				var call_args []LiteralNode
+				if StringInMap(tok.value, FUNCTIONS) {
+					call_args = p_func_call_parse(TT_RPAREN, Arg_len(FUNCTIONS[call_name]), true)
+				} else {
+					call_args = p_func_call_parse(TT_RPAREN, 0, false)
+				}
 				p_advance()
 				return FuncCallNode{Call_name: call_name, Func_parse: call_args, Minus: minus, BitNot: bit_not}
 			}
 		} else {
+			fmt.Println(tok)
 			NewError("RefferenceError", "The refferenced var, func or struct is not defined", fmt.Sprintf("%s at ln %d", tok.section, tok.ln_count), true)
 		}
 	}
@@ -396,7 +435,7 @@ func p_assign(type_ string, glob bool) Node {
 	}
 
 	// checks if the variable allready exists
-	if StringInMap(assignement_name.value, VARS) {
+	if StringInMap(assignement_name.value, VARS) || StringInSlice(assignement_name.value, var_names) {
 		NewError("VariableAllreadyAssigned", fmt.Sprintf("The Variable \"%s\" is allready assigned.", assignement_name.value), fmt.Sprintf("%s at ln %d", assignement_name.section, assignement_name.ln_count), true)
 	}
 
@@ -503,8 +542,12 @@ func p_reassign(ptr bool) Node {
 			if current_token.type_ == TT_REASSGN || current_token.type_ == TT_PLUSEQ || current_token.type_ == TT_MINUSEQ || current_token.type_ == TT_MULEQ || current_token.type_ == TT_DIVEQ {
 				reassgn_t := current_token.value
 				p_advance()
-				current_expected_t = VARS[name.value].(ArrAssignementNode).Asgn_type
-				expect_t = true
+				if StringInMap(name.value, VARS) {
+					current_expected_t = VARS[name.value].(ArrAssignementNode).Asgn_type
+					expect_t = true
+				} else {
+					expect_t = false
+				}
 				content = p_expr()
 				expect_t = false
 				return ArrReAssignementNode{Reassgn_t: reassgn_t, Re_type: name.value, Ptrs: ptrs, Arr_idx: arr_idx, Content: content}
@@ -526,8 +569,14 @@ func p_reassign(ptr bool) Node {
 		ret_var := ReAssignmentNode{Reassgn_t: reassgn_t, Re_type: name.value, Ptrs: ptrs, Content: content}
 		return ret_var
 	} else if current_token.type_ == TT_LPAREN {
+		tok := current_token
+		var call_args []LiteralNode
 		p_advance()
-		call_args := p_func_call_parse(TT_RPAREN, Arg_len(FUNCTIONS[name.value]))
+		if StringInMap(tok.value, FUNCTIONS) {
+			call_args = p_func_call_parse(TT_RPAREN, Arg_len(FUNCTIONS[name.value]), true)
+		} else {
+			call_args = p_func_call_parse(TT_RPAREN, 0, false)
+		}
 		p_advance()
 		if current_token.type_ == TT_RPAREN {
 			return FuncCallNode{Call_name: name.value, Func_parse: call_args}
@@ -882,7 +931,7 @@ func mkID() Node {
 		}
 	} else if tok.value == "while" {
 		node = p_while()
-	} else if StringInMap(getName().value, VARS) || StringInMap(getName().value, FUNCTIONS) || StringInMap(getName().value, GLOBALS) || tok.type_ == TT_MUL {
+	} else if StringInMap(getName().value, VARS) || StringInSlice(getName().value, var_names) || StringInMap(getName().value, FUNCTIONS) || StringInSlice(getName().value, func_names) || StringInMap(getName().value, GLOBALS) || tok.type_ == TT_MUL {
 		if tok.type_ == TT_MUL {
 			node = p_reassign(true)
 		} else {
