@@ -38,6 +38,22 @@ func tconvert_c(t string) string {
 		return "char*"
 	case "flt":
 		return "float"
+	case "int64":
+		return "long long"
+	case "int32":
+		return "int"
+	case "int16":
+		return "short"
+	case "int8":
+		return "char"
+	case "uint64":
+		return "unsigned long long"
+	case "uint32":
+		return "unsigned int"
+	case "uint16":
+		return "unsigned short"
+	case "uint8":
+		return "unsigned char"
 	default:
 		return t
 	}
@@ -372,7 +388,7 @@ func GenerateC(ast_ *RootNode, out_pth, inptPtr string, conf jsonconf.Config) bo
 		*main_code_gc += "}"
 	}
 	data := *global_vars_code_gc + *none_main_code_gc + *main_code_gc
-	err := os.WriteFile(out_pth+".c", []byte(data), 0644)
+	err := os.WriteFile(out_pth, []byte(data), 0644)
 	if err != nil {
 		panic(err)
 	} else {
