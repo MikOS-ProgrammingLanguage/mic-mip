@@ -569,16 +569,18 @@ func p_reassign(ptr bool) Node {
 		ret_var := ReAssignmentNode{Reassgn_t: reassgn_t, Re_type: name.value, Ptrs: ptrs, Content: content}
 		return ret_var
 	} else if current_token.type_ == TT_LPAREN {
-		tok := current_token
-		var call_args []LiteralNode
+		var call_args []LiteralNode = []LiteralNode{UniversalNone{}}
 		p_advance()
-		if StringInMap(tok.value, FUNCTIONS) {
+		if StringInMap(name.value, FUNCTIONS) {
 			call_args = p_func_call_parse(TT_RPAREN, Arg_len(FUNCTIONS[name.value]), true)
+		} else if current_token.type_ == TT_RPAREN {
+			p_advance()
+			return FuncCallNode{Call_name: name.value, Func_parse: call_args}
 		} else {
 			call_args = p_func_call_parse(TT_RPAREN, 0, false)
 		}
-		p_advance()
 		if current_token.type_ == TT_RPAREN {
+			p_advance()
 			return FuncCallNode{Call_name: name.value, Func_parse: call_args}
 		} else {
 			// make error
