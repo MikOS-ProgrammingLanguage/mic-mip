@@ -41,18 +41,22 @@ flt test_flt = 25.0
 
 flt** i5 = tcst(i4)
 
-mikf test_f(int a, int b) -> int {
+mikf test_f(int a, int b) -> void {
     global int c = a+b
     //c ?= a+b
-    return c
 }
 c ?= 100
 mikas test_mikas(int a, int b) -> int {
     mov rax, rdi
     ret
 }
+mikf test_void() -> void {
+
+}
 **i5 += 25.0  // reassignement
-int abc = test_f(&i5, 30)
+test_f(1, 2)
+test_void()
+//int abc = test_f(&i5, 30)
 int abc_asm = test_mikas(1, 3)
 
 struct test3 {

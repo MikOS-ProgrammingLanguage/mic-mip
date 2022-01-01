@@ -10,6 +10,7 @@ import (
 
 var ditch_nil_ptr string = "// this is just to ditch a nil\n"
 var ditch_nil_ptr2 string = "// this is just to ditch a nil\n" // i need that bcs otherwise i would write shit to the same mem address
+var ditch_nil_ptr3 string = "// this is just to ditch a nil\n"
 
 var ast_gc *RootNode
 var current_node_gc Node = nil
@@ -17,7 +18,7 @@ var gc_pos int = -1
 var is_eoast_gc bool = false
 var in_func_gc bool = false
 var arg_parse_gc bool = false
-var main_code_gc *string
+var main_code_gc *string = &ditch_nil_ptr3
 var main_code_arr_gc []string
 var none_main_code_gc *string = &ditch_nil_ptr
 var global_vars_code_gc *string = &ditch_nil_ptr2
@@ -124,6 +125,12 @@ func gen_c(node Node) string {
 		if cast_val.Global {
 			code_ += *none_main_code_gc
 			none_main_code_gc = &code_
+		} else if in_func_gc {
+			code_ += ";\n\t"
+			*none_main_code_gc += code_
+			return code_
+		} else if arg_parse_gc {
+			return code_
 		} else {
 			main_code_arr_gc = append(main_code_arr_gc, code_)
 		}
@@ -141,6 +148,16 @@ func gen_c(node Node) string {
 		}
 		main_code_arr_gc = append(main_code_arr_gc, code_)
 		return code_
+	case "FuncCallNode":
+		if arg_parse_gc {
+			return gen_c_s_l(node.(FuncCallNode))
+		}
+		if in_func_gc {
+			return gen_c_s_l(node.(FuncCallNode)) + ";\n"
+		} else {
+			main_code_arr_gc = append(main_code_arr_gc, gen_c_s_l(node.(FuncCallNode))+";\n")
+			return gen_c_s_l(node.(FuncCallNode)) + ";\n"
+		}
 	case "FunctionNode":
 		cast_val := current_node_gc.(FunctionNode)
 		code_ := tconvert_c(cast_val.Ret_type) + " "
@@ -238,10 +255,12 @@ func gen_c(node Node) string {
 		}
 		in_func_gc = true
 		current_none_main_gc := *none_main_code_gc
+		arg_parse_gc = true
 		for _, val := range cast_val.Vars {
 			code_ += "\t"
-			code_ += gen_c(val)
+			code_ += gen_c(val) + ";\n"
 		}
+		arg_parse_gc = false
 		if cast_val.Typedef {
 			code_ += "}" + cast_val.Name + ";\n"
 		} else {
