@@ -55,6 +55,8 @@ func tconvert_c(t string) string {
 		return "unsigned short"
 	case "uint8":
 		return "unsigned char"
+	case "cock":
+		return "unsigned volatile long long int"
 	default:
 		return t
 	}
