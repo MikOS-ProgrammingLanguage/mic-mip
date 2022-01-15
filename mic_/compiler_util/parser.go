@@ -25,6 +25,7 @@ var LOOP bool = false
 var global bool = false
 var CURRENT_LN int
 
+var expected_ptrs int = 0
 var expect_t bool = false
 var expect_ret = false
 var func_ret_expect string
@@ -315,7 +316,11 @@ func p_factor() LiteralNode {
 			}
 			comp_t := VARS[tok.value].(AssignemntNode)
 			type_compare(comp_t.Asgn_type)
-			return VarNameNode{tok.value, ptrs, deref, not, minus, bit_not}
+			if expected_ptrs == ptrs {
+				return VarNameNode{tok.value, ptrs, deref, not, minus, bit_not}
+			} else {
+				NewError("PointerMissmatchException", "", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+			}
 		} else if StringInMap(tok.value, FUNCTIONS) || StringInSlice(tok.value, func_names) {
 			call_name := tok.value
 			if StringInMap(tok.value, FUNCTIONS) {
