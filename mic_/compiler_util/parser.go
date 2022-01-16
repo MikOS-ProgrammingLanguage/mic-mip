@@ -298,11 +298,17 @@ func p_factor() LiteralNode {
 		p_advance()
 		if StringInMap(tok.value, VARS) || StringInSlice(tok.value, var_names) {
 			if reflect.TypeOf(VARS[tok.value]).Name() == "ArrAssignementNode" {
-				type_compare(VARS[tok.value].(ArrAssignementNode).Asgn_type)
+				comp_t := VARS[tok.value].(ArrAssignementNode)
+				type_compare(comp_t.Asgn_type)
+
+				if expected_ptrs > 0 && current_token.type_ != TT_LBRK && getToken(1).ln_count != tok.ln_count {
+					return VarNameNode{comp_t.Array_name, ptrs, deref, not, minus, bit_not}
+				}
 			}
 			// return list slice if [] is found
 			if current_token.type_ == TT_LBRK {
 				current_expected_t = TT_INT
+				expected_ptrs = 0
 				expect_t = true
 				p_advance()
 				arr_pos := p_expr()
@@ -316,10 +322,17 @@ func p_factor() LiteralNode {
 			}
 			comp_t := VARS[tok.value].(AssignemntNode)
 			type_compare(comp_t.Asgn_type)
-			if expected_ptrs == ptrs {
+			if ptrs > comp_t.Ptrs {
+				// is illegal 'cause it's trying to use more ptrs than there is
+				NewError("ToManyPointersException", "", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+			}
+			if expected_ptrs == 0 && ptrs != comp_t.Ptrs { // checks if is prefixed by right amount of ptrs
+				NewError("PointerMissmatchException", "", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+			}
+			if ptrs <= comp_t.Ptrs || (expected_ptrs > 0 && deref) { // checks if there is the right amount of ptrs or if it's derefed
 				return VarNameNode{tok.value, ptrs, deref, not, minus, bit_not}
 			} else {
-				NewError("PointerMissmatchException", "", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+				NewError("PointerMissmatchException", tok.value, fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
 			}
 		} else if StringInMap(tok.value, FUNCTIONS) || StringInSlice(tok.value, func_names) {
 			call_name := tok.value
@@ -327,10 +340,8 @@ func p_factor() LiteralNode {
 				switch reflect.TypeOf(FUNCTIONS[call_name]).Name() {
 				case "FunctionNode":
 					type_compare(FUNCTIONS[call_name].(FunctionNode).Ret_type)
-					break
 				case "AsmFunctionNode":
 					type_compare(FUNCTIONS[call_name].(AsmFunctionNode).Ret_type)
-					break
 				default:
 					break
 				}
@@ -354,6 +365,11 @@ func p_factor() LiteralNode {
 	}
 	p_advance()
 	type_compare(tok.type_)
+	if expected_ptrs == ptrs {
+		return VarNameNode{tok.value, ptrs, deref, not, minus, bit_not}
+	} else {
+		NewError("PointerMissmatchException", current_token.value, fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+	}
 	return DirectNode{Type_: tok.type_, Value: tok.value, Minus: minus, BitNot: bit_not}
 }
 func p_term() LiteralNode {
@@ -451,6 +467,7 @@ func p_assign(type_ string, glob bool) Node {
 		var arr_len LiteralNode
 		if current_token.type_ != TT_RBRK {
 			current_expected_t = TT_INT
+			expected_ptrs = 0
 			arr_len = p_expr()
 		} else {
 			// array needs to be initialized with zeros in the c file -> type name[] = 0
@@ -472,6 +489,7 @@ func p_assign(type_ string, glob bool) Node {
 			NewError("ArrayNotClosed", "A array was assagnid with '[' but no ']' was found. ", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
 		}
 	} else if current_token.type_ == TT_ASSGN {
+		expected_ptrs = ptrs
 		p_advance()
 		// make a typecast node if one is found
 		if current_token.type_ == TT_ID && current_token.value == "tcst" {
@@ -532,6 +550,28 @@ func p_reassign(ptr bool) Node {
 	CURRENT_LN = current_token.ln_count
 	name := getName()
 
+	if StringInMap(name.value, VARS) && reflect.TypeOf(VARS[name.value]).Name() == "AssignemntNode" {
+		ptr_comp := VARS[name.value].(AssignemntNode)
+		if ptrs == ptr_comp.Ptrs { // checks if the variable is prefixed with all the ptrs it got
+			expected_ptrs = 0 // is possible 'cause basically it's like a normal variable
+		} else if ptrs > VARS[name.value].(AssignemntNode).Ptrs {
+			// is illegal 'cause it's trying to use more ptrs than there is
+			NewError("ToManyPointersException", "", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+		} else {
+			expected_ptrs = ptr_comp.Ptrs - ptrs
+		}
+	} else if StringInMap(name.value, VARS) && reflect.TypeOf(VARS[name.value]).Name() == "ArrAssignementNode" {
+		ptr_comp := VARS[name.value].(ArrAssignementNode)
+		if ptrs == ptr_comp.Ptrs { // checks if the variable is prefixed with all the ptrs it got
+			expected_ptrs = 0 // is possible 'cause basically it's like a normal variable
+		} else if ptrs > VARS[name.value].(AssignemntNode).Ptrs {
+			// is illegal 'cause it's trying to use more ptrs than there is
+			NewError("ToManyPointersException", "", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+		} else {
+			expected_ptrs = ptr_comp.Ptrs - ptrs
+		}
+	}
+
 	p_advance()
 	/*if StringInMap(name.value, GLOBALS) {
 		glob = true
@@ -539,6 +579,8 @@ func p_reassign(ptr bool) Node {
 	if current_token.type_ == TT_LBRK {
 		p_advance()
 		current_expected_t = TT_INT
+		prev_expected := expected_ptrs
+		expected_ptrs = 0
 		expect_t = true
 		arr_idx := p_expr()
 		expect_t = false
@@ -553,6 +595,7 @@ func p_reassign(ptr bool) Node {
 				} else {
 					expect_t = false
 				}
+				expected_ptrs = prev_expected
 				content = p_expr()
 				expect_t = false
 				return ArrReAssignementNode{Reassgn_t: reassgn_t, Re_type: name.value, Ptrs: ptrs, Arr_idx: arr_idx, Content: content}

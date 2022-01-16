@@ -111,20 +111,39 @@ func gen_c(node Node) string {
 		// make reassignement
 		cast_val := node.(ReAssignmentNode)
 		code_ := ""
-		if cast_val.Ptrs > 0 {
-			for i := 0; i < cast_val.Ptrs; i++ {
-				code_ += "*"
+		if VARS[cast_val.Re_type].(AssignemntNode).Asgn_type == "str" {
+			code_ += "strcpy("
+			if cast_val.Ptrs > 0 {
+				for i := 0; i < cast_val.Ptrs; i++ {
+					code_ += "*"
+				}
 			}
-		}
-		code_ += cast_val.Re_type + cast_val.Reassgn_t
-		code_ = strings.Replace(code_, "?=", "=", 1)
-		code_ += gen_c_s_l(cast_val.Content)
-		code_ += ";\n"
-		if in_func_gc {
+			code_ += cast_val.Re_type
+			code_ += ", "
+			//code_ = strings.Replace(code_, "?=", "=", 1)
+			code_ += gen_c_s_l(cast_val.Content)
+			code_ += ");\n"
+			if in_func_gc {
+				return code_
+			}
+			main_code_arr_gc = append(main_code_arr_gc, code_)
+			return code_
+		} else {
+			if cast_val.Ptrs > 0 {
+				for i := 0; i < cast_val.Ptrs; i++ {
+					code_ += "*"
+				}
+			}
+			code_ += cast_val.Re_type + cast_val.Reassgn_t
+			code_ = strings.Replace(code_, "?=", "=", 1)
+			code_ += gen_c_s_l(cast_val.Content)
+			code_ += ";\n"
+			if in_func_gc {
+				return code_
+			}
+			main_code_arr_gc = append(main_code_arr_gc, code_)
 			return code_
 		}
-		main_code_arr_gc = append(main_code_arr_gc, code_)
-		return code_
 	case "ArrAssignementNode":
 		// make a array assignement
 		cast_val := node.(ArrAssignementNode)
@@ -243,7 +262,8 @@ func gen_c(node Node) string {
 			code_ += gen_c(temp)
 		}
 		arg_parse_gc = false
-		code_ += ")" + " { __asm__ __volatile__ (\"" + cast_val.Asm_block + "\");}\n"
+		fmt.Println(cast_val.Asm_block)
+		code_ += ")" + " { __asm__ __volatile__ (" + cast_val.Asm_block + ");}\n"
 		*none_main_code_gc += code_
 		return code_
 	case "StructNode":
@@ -276,7 +296,7 @@ func gen_c(node Node) string {
 		arg_parse_gc = true
 		for _, val := range cast_val.Vars {
 			code_ += "\t"
-			code_ += gen_c(val) + ";\n"
+			code_ += gen_c(val) // + ";\n"
 		}
 		arg_parse_gc = false
 		if cast_val.Typedef {
@@ -408,7 +428,7 @@ func GenerateC(ast_ *RootNode, out_pth, inptPtr string, conf jsonconf.Config) bo
 		}
 		*main_code_gc += "}"
 	}
-	data := *global_vars_code_gc + *none_main_code_gc + *main_code_gc
+	data := *global_vars_code_gc + "char* strcpy(char* dest, const char* src) {do {*dest++ = *src++;} while (*src != 0);return 0;} // strcpy\n" + *none_main_code_gc + *main_code_gc
 	err := os.WriteFile(out_pth, []byte(data), 0644)
 	if err != nil {
 		panic(err)

@@ -1,14 +1,18 @@
-#yoink <test.milk>
+//#yoink <test.milk>
 //#yoink-src <test_pkg>
 //#yoink-lib <test_lib>
 
 void* test_void_ptr
 global str helllo = "wohooo"
-int**** i = 10 + 20 * 300 + 50 / 10 - 10
+int**** i //= 10 + 20 * 300 + 50 / 10 - 10 // throws a pointer missmatch exception
+int iiii = 100
+i ?= &iiii
 int i2[****i]
 i2[0] ?= 2000 + ****i
 int i3[i2[0]+3000000]
 int** i4 = &i3[10]
+int* i70 = i3
+char test_char = 'J'
 
 //int test_re_val = test_the_fucking(20, 30, "hello world")
 //int test_lib_re_val = return_test_lib_f1()
@@ -30,9 +34,9 @@ while (helllo != "wtf2") {
     continue
 }
 
-@section("test")
+//@section("test")
 int test_sec_int = 10
-@secend
+//@secend
 
 int i10[100]
 flt test_flt = 25.0
@@ -77,10 +81,10 @@ struct test2 typedef {
     test c[20]
 }
 
-struct test3* iiii   // creates a struct refference without typedef
+struct test3* iiiii   // creates a struct refference without typedef
 
 int glob_test = c
-int yet_another_test = iiii->a
+int yet_another_test = iiiii->a
 test2* test_struct
 int yes = test_struct->a
 test yes_arr = test_struct->c[5]

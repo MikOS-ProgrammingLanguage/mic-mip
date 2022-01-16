@@ -85,7 +85,7 @@ var text []byte
 var text_position int = -1
 var current_char byte = ' '
 var is_eof bool = false
-var section position = position{[]primitive_position{primitive_position{section: fName, ln_count: 0}}, 1, primitive_position{ln_count: 1, section: ""}}
+var section position = position{[]primitive_position{primitive_position{section: fName, ln_count: 0}}, 0, primitive_position{ln_count: 0, section: ""}}
 var expect_mikas bool = false
 var in_mikas bool = false
 
@@ -136,6 +136,9 @@ func make_str() Token {
 		}
 		l_advance()
 	}
+	if len(mk_str) > 1 {
+		mk_str = fmt.Sprintf("\"%s\"", mk_str)
+	}
 	return Token{section.current_section.section, section.current_section.ln_count, TT_STRING, mk_str}
 }
 
@@ -184,10 +187,10 @@ func make_number() Token {
 // creates a Token for the next character
 func make_char() Token {
 	l_advance()
-	char_str := ""
+	char_str := "'"
 
 	if current_char != '\'' {
-		char_str += string(current_char)
+		char_str += string(current_char) + "'"
 		l_advance()
 		if current_char == '\'' {
 			return Token{section.current_section.section, section.current_section.ln_count, TT_CHAR, char_str}
@@ -320,6 +323,8 @@ func Lex(text_ptr *string, f_name string) *[]Token {
 					for current_char != '\n' && !is_eof {
 						l_advance()
 					}
+					section.current_section.ln_count++
+					l_advance()
 				} else if current_char == '*' {
 					l_advance()
 					for !is_eof {
