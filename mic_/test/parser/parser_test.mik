@@ -13,7 +13,7 @@ int i3[i2[0]+3000000]
 int** i4 = &i3[10]
 int* i70 = i3
 char test_char = 'J'
-//**i4 ?= ***i
+**i4 ?= ***i
 
 //int test_re_val = test_the_fucking(20, 30, "hello world")
 //int test_lib_re_val = return_test_lib_f1()
@@ -21,7 +21,7 @@ char test_char = 'J'
 
 //**i4 ?= **i4 << -32 * 5
 //**i4 ?= **i4 b& b!**i4
-
+/*
 if (!i2[0] || 203450) {
     helllo ?= "Wtf"
 } elif (!i2[0]) {
@@ -96,3 +96,4 @@ mikf add_two_nums(int a, int b) -> test2 {
     test2 aa
     return aa
 }
+*/

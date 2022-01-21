@@ -488,6 +488,5 @@ func Lex(text_ptr *string, f_name string) *[]Token {
 			}
 		}
 	}
-	Tokens = append(Tokens, Token{"", 0, TT_EOF, ""})
 	return &Tokens
 }

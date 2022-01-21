@@ -32,10 +32,11 @@ var func_ret_expect string
 var current_expected_t string
 
 var current_ln_str string = ""
+var prev_ln_str string = ""
 
 // return error loc string
 func CreateErrorLocation() string {
-	return fmt.Sprintf("%s at ln %d -> \" %s \"", current_token.section, current_token.ln_count, current_ln_str)
+	return fmt.Sprintf("%s at ln %d -> %s", current_token.section, current_token.ln_count-1, current_ln_str)
 }
 
 // parse that shit wohooooooo
@@ -87,6 +88,7 @@ func p_advance() {
 	if pos < len(tokens) {
 		current_token = tokens[pos]
 		if current_token.ln_count != CURRENT_LN {
+			prev_ln_str = current_ln_str
 			// generate current ln string
 			current_ln_str = current_token.value
 			i := 1
@@ -102,7 +104,8 @@ func p_advance() {
 		}
 		CURRENT_LN = current_token.ln_count
 	} else {
-		current_token = Token{}
+		tok := current_token
+		current_token = Token{section: tok.section, ln_count: tok.ln_count + 1, type_: TT_EOF, value: ""}
 		is_eot = true
 	}
 }
@@ -348,7 +351,7 @@ func p_factor() LiteralNode {
 				NewError("ToManyPointersException", "", CreateErrorLocation(), true)
 			}
 			if expected_ptrs == 0 && ptrs != comp_t.Ptrs { // checks if is prefixed by right amount of ptrs
-				NewError("PointerMissmatchException123", "", CreateErrorLocation(), true)
+				NewError("PointerMissmatchException", "", CreateErrorLocation(), true)
 			}
 			if ptrs <= comp_t.Ptrs || (expected_ptrs > 0 && deref) { // checks if there is the right amount of ptrs or if it's derefed
 				return VarNameNode{tok.value, ptrs, deref, not, minus, bit_not}
