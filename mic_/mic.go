@@ -30,7 +30,7 @@ func main() {
 	}
 	fmt.Print(string(src_path))*/
 
-	inptPtr := flag.String("i", "", "input flag")
+	inptPtr := flag.String("i", "test/parser/parser_test.mik", "input flag")
 	outpPtr := flag.String("o", "mik", "output flag")
 	configPtr := flag.String("cnfg", "", "Path of a config file (mikConf.json)")
 	cTarget := flag.Bool("c", true, "Specifies the compiling target.")

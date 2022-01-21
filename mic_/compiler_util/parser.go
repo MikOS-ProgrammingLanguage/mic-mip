@@ -31,6 +31,13 @@ var expect_ret = false
 var func_ret_expect string
 var current_expected_t string
 
+var current_ln_str string = ""
+
+// return error loc string
+func CreateErrorLocation() string {
+	return fmt.Sprintf("%s at ln %d -> \" %s \"", current_token.section, current_token.ln_count, current_ln_str)
+}
+
 // parse that shit wohooooooo
 func Parse(Tokens *[]Token, Func_names, Var_names, ign_sections []string) RootNode {
 	tokens = *Tokens
@@ -47,7 +54,7 @@ func Parse(Tokens *[]Token, Func_names, Var_names, ign_sections []string) RootNo
 			} else if current_token.type_ == TT_DEBUG {
 				root_node = root_node.AddNodeToRoot(DebugNode{})
 			} else {
-				NewError("ParsingError", "A function decleration, struct decleration, variable assignement or refference was expected but not found", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+				NewError("ParsingError", "A function decleration, struct decleration, variable assignement or refference was expected but not found", CreateErrorLocation(), true)
 			}
 			continue
 		}
@@ -59,7 +66,7 @@ func Parse(Tokens *[]Token, Func_names, Var_names, ign_sections []string) RootNo
 		} else if current_token.type_ == TT_DEBUG {
 			root_node = root_node.AddNodeToRoot(DebugNode{})
 		} else {
-			NewError("ParsingError", "A function decleration, struct decleration, variable assignement or refference was expected but not found", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+			NewError("ParsingError", "A function decleration, struct decleration, variable assignement or refference was expected but not found", CreateErrorLocation(), true)
 		}
 	}
 	return root_node
@@ -70,7 +77,7 @@ func Parse(Tokens *[]Token, Func_names, Var_names, ign_sections []string) RootNo
 // compares types to find errors
 func type_compare(comp string) {
 	if strings.ToLower(current_expected_t) != strings.ToLower(comp) && expect_t {
-		NewError("TypeMissmatchError", fmt.Sprintf("%s was expected but got %s", strings.ToLower(current_expected_t), strings.ToLower(comp)), fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+		NewError("TypeMissmatchError", fmt.Sprintf("%s was expected but got %s", strings.ToLower(current_expected_t), strings.ToLower(comp)), CreateErrorLocation(), true)
 	}
 }
 
@@ -79,6 +86,20 @@ func p_advance() {
 	pos++
 	if pos < len(tokens) {
 		current_token = tokens[pos]
+		if current_token.ln_count != CURRENT_LN {
+			// generate current ln string
+			current_ln_str = current_token.value
+			i := 1
+			for {
+				current_token_in_string := getToken(i)
+				if current_token_in_string.ln_count != current_token.ln_count || is_eot {
+					break
+				} else {
+					current_ln_str += current_token_in_string.value
+				}
+				i++
+			}
+		}
 		CURRENT_LN = current_token.ln_count
 	} else {
 		current_token = Token{}
@@ -134,7 +155,7 @@ func p_func_parse(end_type string) []Node {
 
 		// check if it's a comma to much
 		if next_tok.type_ == TT_COMMA && (StringInSlice(next_next_tok.value, TYPES) || StringInSlice(next_next_tok.value, CUSTOM_TYPES)) {
-			NewError("ArgumentExpectedError", "After a comma in struct a value is expected but there was none!", fmt.Sprintf("%s at ln %d", next_next_tok.section, next_next_tok.ln_count), true)
+			NewError("ArgumentExpectedError", "After a comma in struct a value is expected but there was none!", CreateErrorLocation(), true)
 		}
 		if StringInSlice(tok.value, TYPES) || StringInSlice(tok.value, CUSTOM_TYPES) {
 			node = p_assign(tok.value, false)
@@ -142,7 +163,7 @@ func p_func_parse(end_type string) []Node {
 			p_advance()
 			continue
 		} else {
-			NewError("IvalidTypeError", "A type that doesn't exist was specified"+tok.type_, fmt.Sprintf("%s at ln %d", tok.section, tok.ln_count), true)
+			NewError("IvalidTypeError", "A type that doesn't exist was specified"+tok.type_, CreateErrorLocation(), true)
 		}
 		vars = append(vars, node)
 	}
@@ -169,7 +190,7 @@ func p_func_call_parse(end_type string, expected_len int, len_expected bool) []L
 
 		// check if it's a comma to much
 		if next_tok.type_ == TT_COMMA && (StringInSlice(next_next_tok.value, TYPES) || StringInSlice(next_next_tok.value, CUSTOM_TYPES)) {
-			NewError("ArgumentExpectedError", "After a comma in struct a value is expected but there was none!", fmt.Sprintf("%s at ln %d", next_next_tok.section, next_next_tok.ln_count), true)
+			NewError("ArgumentExpectedError", "After a comma in struct a value is expected but there was none!", CreateErrorLocation(), true)
 		}
 		if StringInMap(tok.value, VARS) || StringInMap(tok.value, FUNCTIONS) {
 			node = p_expr()
@@ -248,7 +269,7 @@ func p_make_struct_args(name, type_ string, is_ptr, is_n_ptr bool) {
 				}
 			}
 		} else {
-			NewError("WTF", "", "", true)
+			NewError("WTF", "", CreateErrorLocation(), true)
 		}
 	}
 }
@@ -317,22 +338,22 @@ func p_factor() LiteralNode {
 					p_advance()
 					return ListSliceNode{Name: tok.value, Pos: arr_pos, Ptrs: ptrs, Deref: deref, Not: not, Minus: minus, BitNot: bit_not}
 				} else {
-					NewError("ArrayNotClosed", "A array was assagnid with '[' but no ']' was found. ", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+					NewError("ArrayNotClosed", "A array was assagnid with '[' but no ']' was found. ", CreateErrorLocation(), true)
 				}
 			}
 			comp_t := VARS[tok.value].(AssignemntNode)
 			type_compare(comp_t.Asgn_type)
 			if ptrs > comp_t.Ptrs {
 				// is illegal 'cause it's trying to use more ptrs than there is
-				NewError("ToManyPointersException", "", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+				NewError("ToManyPointersException", "", CreateErrorLocation(), true)
 			}
 			if expected_ptrs == 0 && ptrs != comp_t.Ptrs { // checks if is prefixed by right amount of ptrs
-				NewError("PointerMissmatchException", "", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+				NewError("PointerMissmatchException123", "", CreateErrorLocation(), true)
 			}
 			if ptrs <= comp_t.Ptrs || (expected_ptrs > 0 && deref) { // checks if there is the right amount of ptrs or if it's derefed
 				return VarNameNode{tok.value, ptrs, deref, not, minus, bit_not}
 			} else {
-				NewError("PointerMissmatchException", tok.value, fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+				NewError("PointerMissmatchException", tok.value, CreateErrorLocation(), true)
 			}
 		} else if StringInMap(tok.value, FUNCTIONS) || StringInSlice(tok.value, func_names) {
 			call_name := tok.value
@@ -360,7 +381,7 @@ func p_factor() LiteralNode {
 			}
 		} else {
 			fmt.Println(tok)
-			NewError("RefferenceError", "The refferenced var, func or struct is not defined", fmt.Sprintf("%s at ln %d", tok.section, tok.ln_count), true)
+			NewError("RefferenceError", "The refferenced var, func or struct is not defined", CreateErrorLocation(), true)
 		}
 	}
 	p_advance()
@@ -368,7 +389,7 @@ func p_factor() LiteralNode {
 	if expected_ptrs == ptrs {
 		return VarNameNode{tok.value, ptrs, deref, not, minus, bit_not}
 	} else {
-		NewError("PointerMissmatchException", current_token.value, fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+		NewError("PointerMissmatchException", current_token.value, CreateErrorLocation(), true)
 	}
 	return DirectNode{Type_: tok.type_, Value: tok.value, Minus: minus, BitNot: bit_not}
 }
@@ -402,6 +423,7 @@ func p_bool_expr() LiteralNode {
 		p_advance()
 
 		var right LiteralNode
+		expected_ptrs = 0
 		right = p_expr()
 		left = BoolOpNode{left, op_tok.value, right}
 	}
@@ -457,7 +479,7 @@ func p_assign(type_ string, glob bool) Node {
 
 	// checks if the variable allready exists
 	if StringInMap(assignement_name.value, VARS) || StringInSlice(assignement_name.value, var_names) {
-		NewError("VariableAllreadyAssigned", fmt.Sprintf("The Variable \"%s\" is allready assigned.", assignement_name.value), fmt.Sprintf("%s at ln %d", assignement_name.section, assignement_name.ln_count), true)
+		NewError("VariableAllreadyAssigned", fmt.Sprintf("The Variable \"%s\" is allready assigned.", assignement_name.value), CreateErrorLocation(), true)
 	}
 
 	p_advance()
@@ -486,7 +508,7 @@ func p_assign(type_ string, glob bool) Node {
 			expect_t = false
 			return var_node
 		} else {
-			NewError("ArrayNotClosed", "A array was assagnid with '[' but no ']' was found. ", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+			NewError("ArrayNotClosed", "A array was assagnid with '[' but no ']' was found. ", CreateErrorLocation(), true)
 		}
 	} else if current_token.type_ == TT_ASSGN {
 		expected_ptrs = ptrs
@@ -508,10 +530,10 @@ func p_assign(type_ string, glob bool) Node {
 					}
 					return ret_var
 				} else {
-					NewError("ParantheseExpectes", "A parenthese in a typecast was expected but nor found", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+					NewError("ParantheseExpectes", "A parenthese in a typecast was expected but nor found", CreateErrorLocation(), true)
 				}
 			} else {
-				NewError("ParantheseExpectes", "A parenthese in a typecast was expected but nor found", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+				NewError("ParantheseExpectes", "A parenthese in a typecast was expected but nor found", CreateErrorLocation(), true)
 			}
 		} else {
 			content := p_expr()
@@ -556,7 +578,7 @@ func p_reassign(ptr bool) Node {
 			expected_ptrs = 0 // is possible 'cause basically it's like a normal variable
 		} else if ptrs > VARS[name.value].(AssignemntNode).Ptrs {
 			// is illegal 'cause it's trying to use more ptrs than there is
-			NewError("ToManyPointersException", "", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+			NewError("ToManyPointersException", "", CreateErrorLocation(), true)
 		} else {
 			expected_ptrs = ptr_comp.Ptrs - ptrs
 		}
@@ -566,7 +588,7 @@ func p_reassign(ptr bool) Node {
 			expected_ptrs = 0 // is possible 'cause basically it's like a normal variable
 		} else if ptrs > VARS[name.value].(AssignemntNode).Ptrs {
 			// is illegal 'cause it's trying to use more ptrs than there is
-			NewError("ToManyPointersException", "", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+			NewError("ToManyPointersException", "", CreateErrorLocation(), true)
 		} else {
 			expected_ptrs = ptr_comp.Ptrs - ptrs
 		}
@@ -632,11 +654,11 @@ func p_reassign(ptr bool) Node {
 			return FuncCallNode{Call_name: name.value, Func_parse: call_args}
 		} else {
 			// make error
-			NewError("ParentheseExpectedError", "A ')' was expected but not found", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+			NewError("ParentheseExpectedError", "A ')' was expected but not found", CreateErrorLocation(), true)
 		}
 	} else {
 		// make error
-		NewError("UnknownOperatorError", "Expected a reassignement, but no ?= or any other operator was found", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+		NewError("UnknownOperatorError", "Expected a reassignement, but no ?= or any other operator was found", CreateErrorLocation(), true)
 	}
 	return ReAssignmentNode{}
 }
@@ -720,7 +742,7 @@ func p_mikf() Node {
 						} else if current_token.type_ == TT_DEBUG {
 							code = append(code, DebugNode{})
 						} else {
-							NewError("ParsingError", "A function decleration, struct decleration, variable assignement or refference was expected but not found", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+							NewError("ParsingError", "A function decleration, struct decleration, variable assignement or refference was expected but not found", CreateErrorLocation(), true)
 						}
 					}
 					p_advance()
@@ -729,7 +751,7 @@ func p_mikf() Node {
 					AddGlobToVars(VARS, GLOBALS)
 					FUNCTIONS[f_name] = ret_func
 					if expect_ret {
-						NewError("NoReturnError", "A return was expected but not found", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+						NewError("NoReturnError", "A return was expected but not found", CreateErrorLocation(), true)
 					}
 					return ret_func
 				} else {
@@ -740,13 +762,13 @@ func p_mikf() Node {
 					return ret_func
 				}
 			} else {
-				NewError("IllegalTypeError", "A non existing type: "+current_token.value+" was found.", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+				NewError("IllegalTypeError", "A non existing type: "+current_token.value+" was found.", CreateErrorLocation(), true)
 			}
 		} else {
-			NewError("NoReturnTypeError", "A return type with '-> type' was expected but not found.", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+			NewError("NoReturnTypeError", "A return type with '-> type' was expected but not found.", CreateErrorLocation(), true)
 		}
 	} else {
-		NewError("ParentheseNotFoundError", "Expected a () after function name but found none.", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+		NewError("ParentheseNotFoundError", "Expected a () after function name but found none.", CreateErrorLocation(), true)
 	}
 
 	return FunctionNode{}
@@ -787,22 +809,22 @@ func p_mikas() AsmFunctionNode {
 							FUNCTIONS[f_name] = ret_func
 							return ret_func
 						} else {
-							NewError("CurlyBracketExpectError", "A Curly Bracket was expected after assembly code.", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+							NewError("CurlyBracketExpectError", "A Curly Bracket was expected after assembly code.", CreateErrorLocation(), true)
 						}
 					} else {
-						NewError("IllegalAssemblyCodeError", "", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+						NewError("IllegalAssemblyCodeError", "", CreateErrorLocation(), true)
 					}
 				} else {
-					NewError("CurlyBracketExpectError", "A Curly Bracket was expected after assembly code.", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+					NewError("CurlyBracketExpectError", "A Curly Bracket was expected after assembly code.", CreateErrorLocation(), true)
 				}
 			} else {
-				NewError("IllegalTypeError", "A non existing type: "+current_token.value+" was found.", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+				NewError("IllegalTypeError", "A non existing type: "+current_token.value+" was found.", CreateErrorLocation(), true)
 			}
 		} else {
-			NewError("NoReturnTypeError", "A return type with '-> type' was expected but not found.", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+			NewError("NoReturnTypeError", "A return type with '-> type' was expected but not found.", CreateErrorLocation(), true)
 		}
 	} else {
-		NewError("ParentheseNotFoundError", "Expected a () after function name but found none.", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+		NewError("ParentheseNotFoundError", "Expected a () after function name but found none.", CreateErrorLocation(), true)
 	}
 	return AsmFunctionNode{}
 }
@@ -830,7 +852,7 @@ func p_if(elif bool) IfNode {
 					} else if current_token.type_ == TT_DEBUG {
 						code = append(code, DebugNode{})
 					} else {
-						NewError("ParsingError", "A function decleration, struct decleration, variable assignement or refference was expected but not found", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+						NewError("ParsingError", "A function decleration, struct decleration, variable assignement or refference was expected but not found", CreateErrorLocation(), true)
 					}
 				}
 				p_advance()
@@ -838,7 +860,7 @@ func p_if(elif bool) IfNode {
 				PREV_IF = true
 				return ret_if
 			} else {
-				NewError("CodeBlockExpectedError", "A { was expexted after if (bool) ...", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+				NewError("CodeBlockExpectedError", "A { was expexted after if (bool) ...", CreateErrorLocation(), true)
 			}
 		} else {
 			NewError("ParantheseExpectedError", "After bool condition a ')' was expected but not found.", fmt.Sprintf("%s at kn %d", current_token.section, current_token.ln_count), true)
@@ -865,14 +887,14 @@ func p_else() ElseNode {
 			} else if current_token.type_ == TT_DEBUG {
 				code = append(code, DebugNode{})
 			} else {
-				NewError("ParsingError", "A function decleration, struct decleration, variable assignement or refference was expected but not found", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+				NewError("ParsingError", "A function decleration, struct decleration, variable assignement or refference was expected but not found", CreateErrorLocation(), true)
 			}
 		}
 		p_advance()
 		ret_else := ElseNode{codeblock: code}
 		return ret_else
 	} else {
-		NewError("CodeBlockExpectedError", "A code block was expecred after 'else'.", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+		NewError("CodeBlockExpectedError", "A code block was expecred after 'else'.", CreateErrorLocation(), true)
 	}
 	return ElseNode{}
 }
@@ -901,14 +923,14 @@ func p_while() WhileNode {
 					} else if current_token.type_ == TT_DEBUG {
 						code = append(code, DebugNode{})
 					} else {
-						NewError("ParsingError", "A function decleration, struct decleration, variable assignement or refference was expected but not found", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+						NewError("ParsingError", "A function decleration, struct decleration, variable assignement or refference was expected but not found", CreateErrorLocation(), true)
 					}
 				}
 				p_advance()
 				ret_while := WhileNode{bool_: bool_block, codeblock: code}
 				return ret_while
 			} else {
-				NewError("CodeBlockExpectedError", "A '{' was expexted after while (bool) ...", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+				NewError("CodeBlockExpectedError", "A '{' was expexted after while (bool) ...", CreateErrorLocation(), true)
 			}
 		} else {
 			NewError("ParantheseExpectedError", "After bool condition a ')' was expected but not found.", fmt.Sprintf("%s at kn %d", current_token.section, current_token.ln_count), true)
@@ -968,13 +990,13 @@ func mkID() Node {
 		node = p_if(false)
 	} else if tok.value == "elif" {
 		if !PREV_IF {
-			NewError("UnexpectedOperationError", "No elif is expected without a if to even begin with.", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+			NewError("UnexpectedOperationError", "No elif is expected without a if to even begin with.", CreateErrorLocation(), true)
 		} else {
 			node = p_if(true)
 		}
 	} else if tok.value == "else" {
 		if !PREV_IF {
-			NewError("UnexpectedOperationError", "No else is expected without a if or elif to even begin with.", fmt.Sprintf("%s at ln %d", current_token.section, current_token.ln_count), true)
+			NewError("UnexpectedOperationError", "No else is expected without a if or elif to even begin with.", CreateErrorLocation(), true)
 		} else {
 			node = p_else()
 			PREV_IF = false
