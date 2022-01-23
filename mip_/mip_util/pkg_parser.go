@@ -47,15 +47,168 @@ func checkErr(err error) {
 	if err != nil {
 		Clear()
 		panic(err)
+	} else {
+		return
 	}
 }
 
 func readConf() string {
-	cntnt, err := os.ReadFile("mik.conf")
+	cntnt, err := os.ReadFile("/etc/mik.conf")
 	if err != nil {
 		panic(err)
 	}
-	return string(cntnt)
+	return string(cntnt) + "/"
+}
+
+// inits dir
+func Init(dir string) {
+	// create .gitignore
+	// create pkg structure
+	/*
+		- .gitignore
+		- main.mik
+		- milk.pkg
+		- .pkgs/
+		- src/
+	*/
+	checkErr(os.MkdirAll(dir+".pkgs", 0755))
+	file_req, err_req := os.Create(dir + ".pkgs/req_satisfied.conf")
+	checkErr(err_req)
+	file_req.Close()
+
+	checkErr(os.MkdirAll(dir+"src", 0755))
+
+	file, err := os.Create(dir + ".gitignore")
+	checkErr(err)
+	file.Close()
+
+	file_m, err_m := os.Create(dir + "main.mik")
+	checkErr(err_m)
+	file_m.Write([]byte("// This is the main File. Include all other files here, and compile it.\n"))
+	file_m.Close()
+
+	file_p, err_p := os.Create(dir + "milk.pkg")
+	checkErr(err_p)
+	var name string = ""
+	if dir == "" {
+		name, err = os.Getwd()
+		checkErr(err)
+	} else {
+		name = strings.ReplaceAll(dir, "/", "")
+	}
+	file_p.Write([]byte(fmt.Sprintf("package-name: %s\nignore-file: .gitignore\ndepends: none", name)))
+	file_p.Close()
+
+	compiler_util.NewSuccess("Inited: ", dir, "", false)
+}
+
+// adds git url to .pkgs
+func Add(url *string) {
+	// clear git cash
+	checkErr(os.RemoveAll(fmt.Sprintf("%sgit/", mik_src_path)))
+	checkErr(os.Mkdir(fmt.Sprintf("%sgit/", mik_src_path), 0755))
+
+	// clone the actual repo
+	clone_link := exec.Command("git", "clone", *url, mik_src_path+"git")
+	checkErr(clone_link.Run())
+
+	// call Addpkg with git
+	pth := mik_src_path + "git"
+
+	// add the pkg to .pkgs
+	pkgs := ".pkgs/"
+	req := ".pkgs/req_satisfied.conf"
+	AddPkgSrc(&pth, url, &pkgs, &req)
+
+	// clear cache
+	checkErr(os.RemoveAll(mik_src_path + "git"))
+	checkErr(os.Mkdir(mik_src_path+"git", 0755))
+	compiler_util.NewSuccess("Succesfully downloaded", "", "", false)
+}
+
+// milks milk.pkg
+func Milk(dir string) {
+	out, err := os.ReadFile(fmt.Sprintf("%smilk.pkg", dir))
+	if err != nil {
+		Clear()
+		compiler_util.NewCritical("No milk.pkg found", "At ", dir, true)
+	}
+
+	// get already installed pkgs
+	existing_files, err := os.ReadFile(req_satisfied_loc)
+	checkErr(err)
+	existing_ := strings.Split(string(existing_files), "\n")
+	var existing []string
+	if len(existing_) == 1 {
+		existing = append(existing, existing_[0])
+	} else {
+		for _, val := range existing_ {
+			if val == "" {
+				continue
+			}
+			existing = append(existing, strings.Split(val, ":::")[1])
+		}
+	}
+
+	// analize pkg and execute commands
+	var PKG_NAME string
+	var IGNORE_FILES []string
+	var DEPENDENCIES []string
+
+	pkg_txt := string(out)
+	pkg_txt = strings.ReplaceAll(pkg_txt, " ", "")
+	pkg_args := strings.Split(pkg_txt, "\n")
+	for _, val := range pkg_args {
+		val = strip(val)
+		val_2 := strings.SplitN(val, ":", 2)
+
+		if val == "" {
+			continue
+		}
+
+		if len(val_2) < 2 {
+			compiler_util.NewError("No vars specified after <arg>:", "", "", true)
+		}
+		switch val_2[0] {
+		case "package-name":
+			PKG_NAME = mk_str(val_2)
+			if compiler_util.StringInSlice(PKG_NAME, existing) {
+				if !DEPENDS {
+					Clear()
+					compiler_util.NewCritical("Package: "+PKG_NAME+". Allready esxists", "Aborted...", "", true)
+				} else {
+					compiler_util.NewInfo("Requirement: "+PKG_NAME+". Allready satisfied", "", "", false)
+					// clear git
+					checkErr(os.RemoveAll(mik_src_path + "git"))
+					checkErr(os.Mkdir(mik_src_path+"git", 0755))
+					return
+				}
+			}
+		case "ignore-file":
+			IGNORE_FILES = append(IGNORE_FILES, mk_str(val_2))
+		case "depends":
+			str := mk_str(val_2)
+			if str == "none" {
+			} else {
+				DEPENDENCIES = append(DEPENDENCIES, str)
+			}
+		default:
+			compiler_util.NewError("Invalid Argument: "+val_2[0], "", "", true)
+		}
+	}
+	// remove all files in ignore
+	for _, val := range IGNORE_FILES {
+		checkErr(os.Remove(dir + val))
+	}
+	compiler_util.NewInfo("Done Ignoring", "", "", false)
+
+	// make dependencies
+	for _, val := range DEPENDENCIES {
+		DEPENDS = true
+		InstallGit(&val)
+		DEPENDS = false
+	}
+
 }
 
 // Lists all the packages in mik-src
@@ -90,9 +243,47 @@ func ListAll() {
 	}
 }
 
+// lists all the packages in the current dir
+func ListCurrent() {
+	// Loads the content of the req_satisfied
+	content, err := os.ReadFile(".pkgs/req_satisfied.conf")
+	if err != nil {
+		panic(err)
+	}
+
+	split_ := strings.Split(string(content), "\n")
+
+	var split []string
+	for _, val := range split_ {
+		if val == "" {
+			continue
+		}
+		split = append(split, val)
+	}
+
+	if len(split) == 1 && split[0] == "" {
+		compiler_util.NewInfo("No packages found", "", "", true)
+	} else {
+		if len(split) == 1 {
+			fmt.Println("You currently have 1 package installed")
+		} else {
+			fmt.Println("You currently have " + strconv.Itoa(len(split)) + " packages installed")
+		}
+		for i := 0; i < len(split); i++ {
+			fmt.Println("\t|____ " + strings.Split(split[i], ":::")[1])
+		}
+	}
+}
+
 // add_pkg adds a pkg to mik-src with a specified path
-func AddPkg(path, url *string) bool {
-	existing_files, err := os.ReadFile(req_satisfied_loc)
+func AddPkgSrc(path, url, dest, req *string) bool {
+	if *dest == "" {
+		*dest = mik_src_path
+	}
+	if *req == "" {
+		*req = req_satisfied_loc
+	}
+	existing_files, err := os.ReadFile(*req)
 	checkErr(err)
 	existing_ := strings.Split(string(existing_files), "\n")
 	var existing []string
@@ -123,6 +314,7 @@ func AddPkg(path, url *string) bool {
 		compiler_util.NewCritical("No milk.pkg found", "At "+fmt.Sprintf("%s", *path), "", true)
 	} else {
 		pkg_txt := string(out)
+		pkg_txt = strings.ReplaceAll(pkg_txt, " ", "")
 		pkg_args := strings.Split(pkg_txt, "\n")
 		for _, val := range pkg_args {
 			val = strip(val)
@@ -156,7 +348,11 @@ func AddPkg(path, url *string) bool {
 			case "ignore-file":
 				IGNORE_FILES = append(IGNORE_FILES, mk_str(val_2))
 			case "depends":
-				DEPENDENCIES = append(DEPENDENCIES, mk_str(val_2))
+				str := mk_str(val_2)
+				if str == "none" {
+				} else {
+					DEPENDENCIES = append(DEPENDENCIES, str)
+				}
 			default:
 				compiler_util.NewError("Invalid Argument: "+val_2[0], "", "", true)
 			}
@@ -175,14 +371,14 @@ func AddPkg(path, url *string) bool {
 		}
 
 		// make a pkg structure
-		checkErr(os.MkdirAll(mik_src_path+"pkg/"+PKG_NAME, 0755))
-		checkErr(cp.Copy(fmt.Sprintf("%stemp/%s", mik_src_path, CURRENT_TEMP), fmt.Sprintf("%spkg/%s", mik_src_path, PKG_NAME)))
+		checkErr(os.MkdirAll(*dest+PKG_NAME, 0755))
+		checkErr(cp.Copy(fmt.Sprintf("%stemp/%s", mik_src_path, CURRENT_TEMP), fmt.Sprintf("%s%s", *dest, PKG_NAME)))
 
 		// clear temp
 		checkErr(os.RemoveAll(fmt.Sprintf("%stemp/%s/", mik_src_path, CURRENT_TEMP)))
 
 		// preprocess all not ignored files ending in .milk
-		files_, err := ioutil.ReadDir(fmt.Sprintf("%spkg/%s/", mik_src_path, PKG_NAME))
+		files_, err := ioutil.ReadDir(fmt.Sprintf("%s%s/", *dest, PKG_NAME))
 		checkErr(err)
 		var files []string
 
@@ -201,10 +397,10 @@ func AddPkg(path, url *string) bool {
 		}
 
 		// preprocess yoink string and write it
-		pth := fmt.Sprintf("%spkg/%s/", mik_src_path, PKG_NAME)
+		pth := fmt.Sprintf("%s%s/", *dest, PKG_NAME)
 		preprocessed_txt := compiler_util.Preprocess(&yoink_str, &pth)
-		checkErr(os.WriteFile(fmt.Sprintf("%spkg/%s/main_%s.milk", mik_src_path, PKG_NAME, PKG_NAME), []byte(*preprocessed_txt), 0755))
-		exst, err := os.ReadFile(req_satisfied_loc)
+		checkErr(os.WriteFile(fmt.Sprintf("%s%s/main_%s.milk", *dest, PKG_NAME, PKG_NAME), []byte(*preprocessed_txt), 0755))
+		exst, err := os.ReadFile(*req)
 
 		var exst2 string = ""
 		checkErr(err)
@@ -214,7 +410,7 @@ func AddPkg(path, url *string) bool {
 			exst2 += fmt.Sprintf("%s\n%s:::%s", string(existing_files), *url, PKG_NAME)
 		}
 
-		checkErr(os.WriteFile(req_satisfied_loc, []byte(exst2), os.ModeAppend))
+		checkErr(os.WriteFile(*req, []byte(exst2), os.ModeAppend))
 		compiler_util.NewSuccess(fmt.Sprintf("Sucessfully added package: %s. You can now use it with '#yoink-src<%s>", PKG_NAME, PKG_NAME), "", "", false)
 	}
 	return true
@@ -232,7 +428,9 @@ func InstallGit(url *string) {
 
 	// call Addpkg with git
 	pth := mik_src_path + "git"
-	AddPkg(&pth, url)
+	mik_pth := mik_src_path + "pkg/"
+	req := ""
+	AddPkgSrc(&pth, url, &mik_pth, &req)
 	checkErr(os.RemoveAll(mik_src_path + "git"))
 	checkErr(os.Mkdir(mik_src_path+"git", 0755))
 	compiler_util.NewSuccess("Succesfully downloaded", "", "", false)

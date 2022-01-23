@@ -13,15 +13,14 @@ func Install_at_current_path() {
 		panic(err)
 	}
 	data := []byte(strings.ReplaceAll(path, "\\", "/"))
-	split := strings.Split(string(data), "/")
-	rem_split := split[0 : len(split)-1]
-	new_string := ""
-	// puts the strings in the array back together
-	for i := 0; i < len(rem_split); i++ {
-		new_string += rem_split[i]
-		new_string += "/"
+	err2 := os.Chdir("/etc")
+	if err2 != nil {
+		panic(err2)
 	}
-	os.WriteFile("../mik.conf", []byte(new_string), 0644)
+	err3 := os.WriteFile("mik.conf", data, 0644)
+	if err3 != nil {
+		panic(err3)
+	}
 	compiler_util.NewSuccess("Updated your path succesfully", "", "", false)
-	compiler_util.NewInfo("Your new Path is now :", new_string, "", false)
+	compiler_util.NewInfo("Your new Path is now :", string(data), "", false)
 }
