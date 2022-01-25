@@ -202,13 +202,13 @@ func gen_c(node Node) string {
 		code_ += cast_val.Func_name + "("
 		arg_parse_gc = true
 		if len(cast_val.Arg_parse) > 0 {
-			var len_ int = 0
-			for i := 0; i < (len(cast_val.Arg_parse) - 1); i++ {
-				len_ = i
+			for i := 0; i < (len(cast_val.Arg_parse)); i++ {
 				code_ += gen_c(cast_val.Arg_parse[i])
-				code_ += ","
+
+				if (i + 1 != len(cast_val.Arg_parse)) {
+					code_ += ","
+				}
 			}
-			code_ += gen_c(cast_val.Arg_parse[len_+1])
 		} else if len(cast_val.Arg_parse) == 0 {
 			code_ += ""
 		} else {
