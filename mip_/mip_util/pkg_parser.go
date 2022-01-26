@@ -53,7 +53,7 @@ func checkErr(err error) {
 }
 
 func readConf() string {
-	cntnt, err := os.ReadFile("/etc/mik.conf")
+	cntnt, err := os.ReadFile("/etc/.mik.conf")
 	if err != nil {
 		panic(err)
 	}

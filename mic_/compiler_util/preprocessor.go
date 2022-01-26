@@ -20,7 +20,7 @@ func Preprocess(text, pth *string) *string {
 		}
 	}
 	*pth = strings.ReplaceAll(*pth, "\n", "")
-	mip_src_path_, err := os.ReadFile("/etc/mik.conf")
+	mip_src_path_, err := os.ReadFile("/etc/.mik.conf")
 	if err != nil {
 		panic(err)
 	}
