@@ -52,6 +52,9 @@ func (rnode RootNode) AddNodeToRoot(node Node) RootNode {
 }
 
 /* First class nodes */
+type DocNode struct {
+	Var_name string
+}
 type IfNode struct {
 	elif      bool
 	bool_     LiteralNode
@@ -170,6 +173,10 @@ type FuncCallNode struct {
 	BitNot     bool
 }
 
+type GetDoc struct {
+	Var_name string
+}
+
 type DirectNode struct {
 	Type_  string
 	Value  string
@@ -178,6 +185,13 @@ type DirectNode struct {
 }
 
 // -------------- 1 Interface implement --------------
+
+func (doc DocNode) Is_1_node() bool {
+	return true
+}
+func (doc DocNode) What_type() string {
+	return "DocNode"
+}
 
 func (dir DirectNode) Is_1_node() bool {
 	return true
@@ -394,6 +408,13 @@ func (tcst TypeCastNode) Is_3_node() bool {
 }
 func (tcst TypeCastNode) What_type() string {
 	return "TypeCastNode"
+}
+
+func (gdoc GetDoc) Is_3_node() bool {
+	return true
+}
+func (gdoc GetDoc) What_type() string {
+	return "GetDoc"
 }
 
 func (drct DirectNode) Is_3_node() bool {

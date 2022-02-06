@@ -66,6 +66,7 @@ func Init(dir string) {
 	// create pkg structure
 	/*
 		- .gitignore
+		- Makefile
 		- main.mik
 		- milk.pkg
 		- .pkgs/
@@ -81,6 +82,11 @@ func Init(dir string) {
 	file, err := os.Create(dir + ".gitignore")
 	checkErr(err)
 	file.Close()
+
+	file_make, err_make := os.Create(dir + "Makefile")
+	checkErr(err_make)
+	file_make.Write([]byte("COMP = mic\nTARGET = -c\n OUT = -o\nFLAGS = \nBIN = main\n\nall: $(BIN)\n\n%: %.mik\n\t$(COMP) $(TARGET) -i  $< $(OUT) $@\n"))
+	file_make.Close()
 
 	file_m, err_m := os.Create(dir + "main.mik")
 	checkErr(err_m)

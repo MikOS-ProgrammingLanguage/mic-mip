@@ -2,7 +2,9 @@
 //#yoink-src <test_pkg>
 //#yoink-lib <test_lib>
 
+@doc("This is le doc string!!!!!!!!")
 void* test_void_ptr
+
 global str helllo = "wohooo"
 int**** i //= 10 + 20 * 300 + 50 / 10 - 10 // throws a pointer missmatch exception
 int iiii = 100
@@ -13,7 +15,7 @@ int i3[i2[0]+3000000]
 int** i4 = &i3[10]
 int* i70 = i3
 char test_char = 'J'
-**i4 ?= ***i
+**i4 ?= ****i
 
 //int test_re_val = test_the_fucking(20, 30, "hello world")
 //int test_lib_re_val = return_test_lib_f1()

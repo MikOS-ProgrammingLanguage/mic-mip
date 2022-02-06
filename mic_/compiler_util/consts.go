@@ -16,6 +16,7 @@ var TYPES []string = []string{
 	"int32",
 	"int64",
 	"void",
+	"bit",
 }
 
 // a array that hold the entire instruction set

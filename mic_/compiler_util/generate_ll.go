@@ -9,8 +9,8 @@ var ast_gasm *RootNode
 var current_node_gasm Node = nil
 var gasm_pos int = -1
 var is_eoast_asm bool = false
-var ditch_nil_ptr_asm string = "_start:\n\t"
-var out_code *string = &ditch_nil_ptr
+var ditch_nil_ptr_asm string = ""
+var out_code *string = &ditch_nil_ptr_asm
 
 // advances to the next nodes
 func gasm_advance() {
@@ -44,7 +44,7 @@ func GenerateAsm(ast_ *RootNode, out_pth string) bool {
 func gen_asm(node Node) {
 	switch reflect.TypeOf(node).Name() {
 	case "AssignemntNode":
-
+		
 		break
 	case "":
 		break

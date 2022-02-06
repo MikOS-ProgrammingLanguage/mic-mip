@@ -32,7 +32,7 @@ var func_ret_expect string
 var current_expected_t string
 
 var current_ln_str string = ""
-var prev_ln_str string = ""
+var expect_doc bool = false
 
 // return error loc string
 func CreateErrorLocation() string {
@@ -48,7 +48,7 @@ func Parse(Tokens *[]Token, Func_names, Var_names, ign_sections []string) RootNo
 
 	for current_token.type_ != TT_EOF {
 		if StringInSlice(current_token.section, ign_sections) {
-			if current_token.type_ == TT_ID || current_token.type_ == TT_MUL {
+			if current_token.type_ == TT_ID || current_token.type_ == TT_MUL || current_token.type_ == TT_DOC {
 				_ = mkID()
 				//fmt.Println(res)
 				//fmt.Println(VARS)
@@ -59,7 +59,7 @@ func Parse(Tokens *[]Token, Func_names, Var_names, ign_sections []string) RootNo
 			}
 			continue
 		}
-		if current_token.type_ == TT_ID || current_token.type_ == TT_MUL {
+		if current_token.type_ == TT_ID || current_token.type_ == TT_MUL || current_token.type_ == TT_DOC {
 			res := mkID()
 			//fmt.Println(res)
 			//fmt.Println(VARS)
@@ -88,7 +88,6 @@ func p_advance() {
 	if pos < len(tokens) {
 		current_token = tokens[pos]
 		if current_token.ln_count != CURRENT_LN {
-			prev_ln_str = current_ln_str
 			// generate current ln string
 			current_ln_str = current_token.value
 			i := 1
@@ -464,6 +463,7 @@ func binOp(factor, term bool, ops []string) LiteralNode {
 // makes an assignement with -> type name([expr()]) = expr()
 func p_assign(type_ string, glob bool) Node {
 	current_expected_t = type_
+	fmt.Println(current_expected_t)
 	expect_t = true
 	p_advance()
 	CURRENT_LN = current_token.ln_count
@@ -866,10 +866,10 @@ func p_if(elif bool) IfNode {
 				NewError("CodeBlockExpectedError", "A { was expexted after if (bool) ...", CreateErrorLocation(), true)
 			}
 		} else {
-			NewError("ParantheseExpectedError", "After bool condition a ')' was expected but not found.", fmt.Sprintf("%s at kn %d", current_token.section, current_token.ln_count), true)
+			NewError("ParantheseExpectedError", "After bool condition a ')' was expected but not found.", CreateErrorLocation(), true)
 		}
 	} else {
-		NewError("ParantheseExpectedError", "After 'if' condition a '(' was expected but not found.", fmt.Sprintf("%s at kn %d", current_token.section, current_token.ln_count), true)
+		NewError("ParantheseExpectedError", "After 'if' condition a '(' was expected but not found.", CreateErrorLocation(), true)
 	}
 	return IfNode{}
 }
@@ -936,10 +936,10 @@ func p_while() WhileNode {
 				NewError("CodeBlockExpectedError", "A '{' was expexted after while (bool) ...", CreateErrorLocation(), true)
 			}
 		} else {
-			NewError("ParantheseExpectedError", "After bool condition a ')' was expected but not found.", fmt.Sprintf("%s at kn %d", current_token.section, current_token.ln_count), true)
+			NewError("ParantheseExpectedError", "After bool condition a ')' was expected but not found.", CreateErrorLocation(), true)
 		}
 	} else {
-		NewError("ParantheseExpectedError", "After 'while' condition a '(' was expected but not found.", fmt.Sprintf("%s at kn %d", current_token.section, current_token.ln_count), true)
+		NewError("ParantheseExpectedError", "After 'while' condition a '(' was expected but not found.", CreateErrorLocation(), true)
 	}
 	return WhileNode{}
 }
@@ -949,6 +949,15 @@ func mkID() Node {
 	var node Node
 	tok := current_token
 	// check if it is a assignement by looking for a dtype
+	//fmt.Println(tok)
+	if expect_doc {
+		if !(StringInSlice(tok.value, []string{"mikf", "mikas", "struct", "estruct"}) || StringInSlice(tok.value, TYPES) || StringInSlice(tok.value, CUSTOM_TYPES) || tok.value == "global") {
+			NewError("NoDocExpectedError", "A doc is only expexted before functions, variables, structs, and assembly functions", CreateErrorLocation(), true)
+		} else {
+			expect_doc = false
+		}
+
+	}
 	if PREV_IF && tok.value != "elif" && tok.value != "else" && tok.value != "if" {
 		PREV_IF = false
 	}
@@ -970,7 +979,7 @@ func mkID() Node {
 			expect_t = false
 			node = ReturnNode{Return_val: ret}
 		} else {
-			NewError("ReturnNotExpected", "You tried to return without being in a function.", fmt.Sprintf("%s at ln %d", tok.section, tok.ln_count), true)
+			NewError("ReturnNotExpected", "You tried to return without being in a function.", CreateErrorLocation(), true)
 		}
 	} else if tok.value == "break" && LOOP {
 		node = DirectNode{"", "break", false, false}
@@ -1012,6 +1021,10 @@ func mkID() Node {
 		} else {
 			node = p_reassign(false)
 		}
+	} else if tok.type_ == TT_DOC {
+		node = DocNode{current_token.value}
+		p_advance()
+		expect_doc = true
 	} else {
 		fmt.Println(current_token)
 		NewError("", "", "", true)

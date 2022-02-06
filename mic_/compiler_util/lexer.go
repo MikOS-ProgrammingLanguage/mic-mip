@@ -11,6 +11,7 @@ var numbers string = "0123456789"
 
 // All the Tokens that exist
 const (
+	TT_DOC        string = "DOC"      // a doc string
 	TT_BITAND     string = "BITAND"   // b&
 	TT_BITOR      string = "BITOR"    // b|
 	TT_BITXOR     string = "BITXOR"   // ^
@@ -452,6 +453,25 @@ func Lex(text_ptr *string, f_name string) *[]Token {
 					case "override":
 						Tokens = append(Tokens, Token{section.current_section.section, section.current_section.ln_count, TT_OVERRIDE, ""})
 						l_advance()
+					case "doc":
+						// make doc string
+						if current_char == '(' {
+							l_advance()
+							if current_char == '"' {
+								doc_string := make_str().value
+
+								if current_char == ')' {
+									l_advance()
+									Tokens = append(Tokens, Token{section.current_section.section, section.current_section.ln_count, TT_DOC, doc_string})
+								} else {
+									NewError("ClosingParentheseExpectedError", "A closing parenthese expected after '@section(\"name\"' but not found at ", currentPos(), true)
+								}
+							} else {
+								NewError("StringExpectedError", "A srting (\"\") was expected after '@section(' but wasn't found At ", currentPos(), true)
+							}
+						} else {
+							NewError("OpeningParentheseExpected", "A opening paranthese was expected but not found after '@section' at ", currentPos(), true)
+						}
 					default:
 						NewError("InvalidCompilerFlagError", "A invalid compiler flag was found at ", currentPos(), true)
 					}
