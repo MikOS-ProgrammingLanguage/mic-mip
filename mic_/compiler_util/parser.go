@@ -46,7 +46,8 @@ func Parse(Tokens *[]Token, Func_names, Var_names, ign_sections []string) RootNo
 	var_names = Var_names
 	p_advance()
 
-	for current_token.type_ != TT_EOF {
+	fmt.Println(current_token)
+	for !is_eot {
 		if StringInSlice(current_token.section, ign_sections) {
 			if current_token.type_ == TT_ID || current_token.type_ == TT_MUL || current_token.type_ == TT_DOC {
 				_ = mkID()
@@ -115,7 +116,7 @@ func getToken(num int) Token {
 	if pos_now+num < len(tokens) {
 		return tokens[pos_now+num]
 	} else {
-		is_eot = true
+		//is_eot = true
 		return Token{}
 	}
 }
