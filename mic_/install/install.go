@@ -19,7 +19,7 @@ func Install_at_current_path() {
 	}
 	err3 := os.WriteFile(".mik.conf", data, 0644)
 	if err3 != nil {
-		panic(err3)
+		compiler_util.NewCritical("Permission denied. Execute as root!", "", "", true)
 	}
 
 	compiler_util.NewSuccess("Updated your path succesfully", "", "", false)

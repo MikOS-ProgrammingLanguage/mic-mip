@@ -463,8 +463,12 @@ func binOp(factor, term bool, ops []string) LiteralNode {
 
 // makes an assignement with -> type name([expr()]) = expr()
 func p_assign(type_ string, glob bool) Node {
-	current_expected_t = type_
-	fmt.Println(current_expected_t)
+	if type_ == "cock" {
+		current_expected_t = "int"
+	} else {
+		current_expected_t = type_
+	}
+
 	expect_t = true
 	p_advance()
 	CURRENT_LN = current_token.ln_count

@@ -3,6 +3,8 @@ package compiler_util
 import (
 	"fmt"
 	"os"
+	"os/exec"
+	"strconv"
 	"reflect"
 	"strings"
 )
@@ -15,8 +17,11 @@ var var_is_refferenced bool = false
 var VARS_LLVM []string
 
 func get_align(ptrs int) string {
-	fmt.Println(ptrs + 1)
-	return fmt.Sprintf(", align %d", 4*(ptrs+1))
+	if ptrs > 0 {
+		return ", align 8"
+	} else {
+		return ", align 4"
+	}
 }
 func get_ptrs(ptrs int) string {
 	str := ""
@@ -51,6 +56,12 @@ func type_convert_llvm(i string) string {
 		return "i32"
 	case "str":
 		return "i8*"
+	case "char":
+		return "i8"
+	case "flt":
+		return "float"
+	case "cock":
+		return "i64"
 	}
 	return i
 }
@@ -80,23 +91,29 @@ func GenerateAsm(ast_ *RootNode, out_pth string) bool {
 
 	*out_code += "\tret i32 1\n}"
 	*out_code = *global_vars + *out_code
-	err := os.WriteFile(out_pth, []byte(*out_code), 0755)
+	err := os.WriteFile(out_pth+".ll", []byte(*out_code), 0755)
 	if err != nil {
 		panic(err)
 	}
 
+	_, _ = exec.Command("llc", "-filetype=obj", out_pth+".ll", "-o", out_pth).CombinedOutput()
+	_, _ = exec.Command("rm", "-rf", out_pth+".ll").CombinedOutput()
+
 	return SUCCESS
 }
 
-func generate_second_and_third_class_node(node LiteralNode, type_ string) string {
+func generate_second_and_third_class_node(node LiteralNode, type_ string) (string, bool) {
 	switch reflect.TypeOf(node).Name() {
 	case "BinOpNode":
 
 		new_op := node.(BinOpNode)
 
-		left_code := type_ + " " + generate_second_and_third_class_node(new_op.Left_node, type_)
+		left, _ := generate_second_and_third_class_node(new_op.Left_node, type_)
+		right, _ := generate_second_and_third_class_node(new_op.Right_node, type_)
+
+		left_code := type_ + " " + left
 		operator := operator_cast_llvm(new_op.Op_tok)
-		right_code := generate_second_and_third_class_node(new_op.Right_node, type_)
+		right_code := right
 
 		code := fmt.Sprintf("\t%%%d = ", current_function_variable_count)
 		code += operator + " "
@@ -105,11 +122,11 @@ func generate_second_and_third_class_node(node LiteralNode, type_ string) string
 
 		*out_code += code
 		current_function_variable_count++
-		return fmt.Sprintf("\t%%%d", current_function_variable_count-1)
+		return fmt.Sprintf("\t%%%d", current_function_variable_count-1), false
 
 	case "DirectNode":
 		new_op := node.(DirectNode)
-		return new_op.Value
+		return new_op.Value, true
 	case "VarNameNode":
 		var_is_refferenced = false
 		new_op := node.(VarNameNode)
@@ -122,16 +139,19 @@ func generate_second_and_third_class_node(node LiteralNode, type_ string) string
 			*out_code += code
 			current_function_variable_count++
 
-			return fmt.Sprintf("\t%%%d", (current_function_variable_count - 1))
+			return fmt.Sprintf("\t%%%d", (current_function_variable_count - 1)), true
 		} else {
 			if type_ == "i8*" {
-				return strings.ReplaceAll(new_op.Name, "\"", "")
+				return strings.ReplaceAll(new_op.Name, "\"", ""), true
+			} else if type_ == "i8" {
+				value := int(rune(strings.ReplaceAll(new_op.Name, "'", "")[0]))
+				return strconv.Itoa(value), true
 			} else {
-				return new_op.Name
+				return new_op.Name, true
 			}
 		}
 	}
-	return ""
+	return "", true
 }
 
 // generate the fucking nodes
@@ -150,11 +170,11 @@ func generate_asm(node Node) string {
 			string_flg = true
 			//node_cast.Ptrs++
 			assignment_code = ""
-			fmt.Println(node_cast.Content.What_type())
-			assignment_code += fmt.Sprintf("@.str.%s =%s [%d x i8] c\"%s\\00\", align 1\n", node_cast.Var_name, string_constant, len(generate_second_and_third_class_node(node_cast.Content, type_convert_llvm(node_cast.Asgn_type)))+1, generate_second_and_third_class_node(node_cast.Content, type_convert_llvm(node_cast.Asgn_type)))
-			string_const_asgn_length_and_val = fmt.Sprintf("[%d x i8]", len(generate_second_and_third_class_node(node_cast.Content, type_convert_llvm(node_cast.Asgn_type)))+1)
+			gen_cnt, _ := generate_second_and_third_class_node(node_cast.Content, type_convert_llvm(node_cast.Asgn_type))
+			assignment_code += fmt.Sprintf("@.str.%s =%s [%d x i8] c\"%s\\00\", align 1\n", node_cast.Var_name, string_constant, len(gen_cnt)+1, gen_cnt)
+			string_const_asgn_length_and_val = fmt.Sprintf("[%d x i8]", len(gen_cnt)+1)
 			string_const_asgn = assignment_code
-			node_cast.Ptrs++
+			//node_cast.Ptrs++
 			current_ptr_offset++
 			*out_code = out_cpy
 			current_function_variable_count = cnt_cpy
@@ -173,25 +193,35 @@ func generate_asm(node Node) string {
 
 		converted_type := type_convert_llvm(node_cast.Asgn_type)
 
-		assignment_code += converted_type + get_align(node_cast.Ptrs)
+		if string_flg {
+			assignment_code += converted_type + get_ptrs(node_cast.Ptrs) + ", align 8"
+		} else {
+			assignment_code += converted_type + get_ptrs(node_cast.Ptrs) + get_align(node_cast.Ptrs)
+		}
 		*out_code += assignment_code + "\n"
 		// -> %var_name = alloca type, align 4 (pointer on the stack to a type)
 
-		func_count_old := current_function_variable_count
-		// store the actual value into %var_name
-		_ = generate_second_and_third_class_node(node_cast.Content, converted_type)
+		if (reflect.TypeOf(node_cast.Content).Name() != "UniversalNone") {
+			func_count_old := current_function_variable_count
+			// store the actual value into %var_name
+			code, is_req := generate_second_and_third_class_node(node_cast.Content, converted_type)
 
-		// assign var_name to a var. This works because the last temporary variable is always the final value to store
-		if !string_flg {
-			*out_code += fmt.Sprintf("\tstore %s %%%d, %s%s %%%s %s\n", converted_type, current_function_variable_count-1, converted_type, get_ptrs(node_cast.Ptrs+1), node_cast.Var_name, get_align(node_cast.Ptrs))
-		} else {
-			current_ptr_offset = 0
-			if var_is_refferenced {
-				*out_code += fmt.Sprintf("\tstore %s %%%d, %s%s %%%s %s\n", converted_type, current_function_variable_count-1, converted_type, get_ptrs(node_cast.Ptrs), node_cast.Var_name, get_align(node_cast.Ptrs))
+			// assign var_name to a var. This works because the last temporary variable is always the final value to store
+			if !string_flg {
+				if !is_req {
+					*out_code += fmt.Sprintf("\tstore %s %%%d, %s%s %%%s %s\n", converted_type, current_function_variable_count-1, converted_type, get_ptrs(node_cast.Ptrs+1), node_cast.Var_name, get_align(node_cast.Ptrs))
+				} else {
+					*out_code += fmt.Sprintf("\tstore %s %s, %s%s %%%s %s\n", converted_type, code, converted_type, get_ptrs(node_cast.Ptrs+1), node_cast.Var_name, get_align(node_cast.Ptrs))
+				}
 			} else {
-				*out_code += fmt.Sprintf("\tstore %s getelementptr inbounds (%s, %s%s %s, i64 0, i64 0),%s%s %%%s %s\n", converted_type, string_const_asgn_length_and_val, string_const_asgn_length_and_val, get_ptrs(node_cast.Ptrs), "@.str."+node_cast.Var_name, converted_type, get_ptrs(node_cast.Ptrs), node_cast.Var_name, get_align(node_cast.Ptrs))
-				if func_count_old == current_function_variable_count {
-					*global_vars += string_const_asgn
+				current_ptr_offset = 0
+				if var_is_refferenced {
+					*out_code += fmt.Sprintf("\tstore %s %%%d, %s%s %%%s %s\n", converted_type, current_function_variable_count-1, converted_type, get_ptrs(node_cast.Ptrs), node_cast.Var_name, get_align(node_cast.Ptrs))
+				} else {
+					*out_code += fmt.Sprintf("\tstore %s getelementptr inbounds (%s, %s%s %s, i64 0, i64 0),%s%s %%%s %s\n", converted_type, string_const_asgn_length_and_val, string_const_asgn_length_and_val, get_ptrs(node_cast.Ptrs+1), "@.str."+node_cast.Var_name, converted_type, get_ptrs(node_cast.Ptrs+1), node_cast.Var_name,  ", align 8")
+					if func_count_old == current_function_variable_count {
+						*global_vars += string_const_asgn
+					}
 				}
 			}
 		}

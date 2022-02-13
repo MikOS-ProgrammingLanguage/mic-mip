@@ -1,1 +1,2 @@
 add 'bit' datentyp
+cock = unsigned long long int (llvm -> i64)

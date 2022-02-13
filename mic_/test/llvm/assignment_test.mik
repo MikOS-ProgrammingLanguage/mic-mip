@@ -1,0 +1,24 @@
+// int
+int iint = 100 + 11 + 30+5
+int iintn
+int* iptrint
+
+// strings
+str istr = "Starship my nutz lol\n"
+str istrn
+str* iptrstr
+
+// float
+flt iflt = 10.5
+flt ifltn
+flt* iptrflt
+
+// char
+char ichar = 'A'
+char icharn
+char* iptrchar
+
+// cock
+cock icock = 100
+cock icockn
+cock* iptrcock
