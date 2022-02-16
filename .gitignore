@@ -5,6 +5,10 @@
 *.so
 *.dylib
 
+# asm and IR
+*.S
+*.ll
+
 # Object files
 *.o
 
