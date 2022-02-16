@@ -84,7 +84,7 @@ struct test2 typedef {
     test c[20]
 }
 
-struct test3* iiiii   // creates a struct refference without typedef
+struct test3* iiiii   // creates a struct reference without typedef
 
 int glob_test = c
 int yet_another_test = iiiii->a

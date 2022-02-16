@@ -1,5 +1,5 @@
 // int
-int iint = 100 + 11 + 30+5
+int iint = 100
 int iintn
 int* iptrint
 

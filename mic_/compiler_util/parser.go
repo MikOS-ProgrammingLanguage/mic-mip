@@ -56,7 +56,7 @@ func Parse(Tokens *[]Token, Func_names, Var_names, ign_sections []string) RootNo
 			} else if current_token.type_ == TT_DEBUG {
 				root_node = root_node.AddNodeToRoot(DebugNode{})
 			} else {
-				NewError("ParsingError", "A function decleration, struct decleration, variable assignement or refference was expected but not found", CreateErrorLocation(), true)
+				NewError("ParsingError", "A function decleration, struct decleration, variable assignement or reference was expected but not found", CreateErrorLocation(), true)
 			}
 			continue
 		}
@@ -68,7 +68,7 @@ func Parse(Tokens *[]Token, Func_names, Var_names, ign_sections []string) RootNo
 		} else if current_token.type_ == TT_DEBUG {
 			root_node = root_node.AddNodeToRoot(DebugNode{})
 		} else {
-			NewError("ParsingError", "A function decleration, struct decleration, variable assignement or refference was expected but not found", CreateErrorLocation(), true)
+			NewError("ParsingError", "A function decleration, struct decleration, variable assignement or reference was expected but not found", CreateErrorLocation(), true)
 		}
 	}
 	return root_node
@@ -216,7 +216,7 @@ func p_make_struct_args(name, type_ string, is_ptr, is_n_ptr bool) {
 	for i := 0; len(str_get) > i; i++ {
 		current_struct_attr := str_get[i]
 		if current_struct_attr.What_type() == "AssignementNode" {
-			current_struct_attr2 := current_struct_attr.(AssignemntNode)
+			current_struct_attr2 := current_struct_attr.(AssignmentNode)
 			if StringInSlice(current_struct_attr2.Asgn_type, CUSTOM_TYPES) {
 				if is_ptr {
 					var is_ptr_ bool = false
@@ -228,7 +228,7 @@ func p_make_struct_args(name, type_ string, is_ptr, is_n_ptr bool) {
 						is_ptr_ = false
 						is_n_ptr_ = true
 					}
-					VARS[name+"."+current_struct_attr2.Var_name] = AssignemntNode{current_struct_attr2.Asgn_type, current_struct_attr2.Ptrs, false, name + "." + current_struct_attr2.Var_name, current_struct_attr2.Content}
+					VARS[name+"."+current_struct_attr2.Var_name] = AssignmentNode{current_struct_attr2.Asgn_type, current_struct_attr2.Ptrs, false, name + "." + current_struct_attr2.Var_name, current_struct_attr2.Content}
 					p_make_struct_args(name+"->"+current_struct_attr2.Var_name, current_struct_attr2.Asgn_type, is_ptr_, is_n_ptr_)
 					//p_make_struct_args(name+"->"+current_struct_attr2.Var_name, current_struct_attr2.Asgn_type, true, false)
 				} else {
@@ -241,34 +241,34 @@ func p_make_struct_args(name, type_ string, is_ptr, is_n_ptr bool) {
 						is_ptr_ = false
 						is_n_ptr_ = true
 					}
-					VARS[name+"->"+current_struct_attr2.Var_name] = AssignemntNode{current_struct_attr2.Asgn_type, current_struct_attr2.Ptrs, false, name + "->" + current_struct_attr2.Var_name, current_struct_attr2.Content}
+					VARS[name+"->"+current_struct_attr2.Var_name] = AssignmentNode{current_struct_attr2.Asgn_type, current_struct_attr2.Ptrs, false, name + "->" + current_struct_attr2.Var_name, current_struct_attr2.Content}
 					p_make_struct_args(name+"."+current_struct_attr2.Var_name, current_struct_attr2.Asgn_type, is_ptr_, is_n_ptr_)
 				}
 			} else {
 				if is_n_ptr {
-					VARS[name+"."+current_struct_attr2.Var_name] = AssignemntNode{current_struct_attr2.Asgn_type, current_struct_attr2.Ptrs, false, name + "." + current_struct_attr2.Var_name, current_struct_attr2.Content}
+					VARS[name+"."+current_struct_attr2.Var_name] = AssignmentNode{current_struct_attr2.Asgn_type, current_struct_attr2.Ptrs, false, name + "." + current_struct_attr2.Var_name, current_struct_attr2.Content}
 				}
 				if is_ptr {
-					VARS[name+"->"+current_struct_attr2.Var_name] = AssignemntNode{current_struct_attr2.Asgn_type, current_struct_attr2.Ptrs, false, name + "->" + current_struct_attr2.Var_name, current_struct_attr2.Content}
+					VARS[name+"->"+current_struct_attr2.Var_name] = AssignmentNode{current_struct_attr2.Asgn_type, current_struct_attr2.Ptrs, false, name + "->" + current_struct_attr2.Var_name, current_struct_attr2.Content}
 				}
 			}
-		} else if current_struct_attr.What_type() == "ArrAssignementNode" {
-			current_struct_attr2 := current_struct_attr.(ArrAssignementNode)
+		} else if current_struct_attr.What_type() == "ArrAssignmentNode" {
+			current_struct_attr2 := current_struct_attr.(ArrAssignmentNode)
 			if StringInSlice(current_struct_attr2.Asgn_type, CUSTOM_TYPES) {
 				if is_n_ptr {
 					p_make_struct_args(name+"."+current_struct_attr2.Array_name, current_struct_attr2.Asgn_type, false, true)
-					VARS[name+"."+current_struct_attr2.Array_name] = ArrAssignementNode{current_struct_attr2.Asgn_type, current_struct_attr2.Ptrs, false, name + "." + current_struct_attr2.Array_name, current_struct_attr2.Arr_len}
+					VARS[name+"."+current_struct_attr2.Array_name] = ArrAssignmentNode{current_struct_attr2.Asgn_type, current_struct_attr2.Ptrs, false, name + "." + current_struct_attr2.Array_name, current_struct_attr2.Arr_len}
 				}
 				if is_ptr {
 					p_make_struct_args(name+"->"+current_struct_attr2.Array_name, current_struct_attr2.Asgn_type, true, false)
-					VARS[name+"->"+current_struct_attr2.Array_name] = AssignemntNode{current_struct_attr2.Asgn_type, current_struct_attr2.Ptrs, false, name + "->" + current_struct_attr2.Array_name, current_struct_attr2.Arr_len}
+					VARS[name+"->"+current_struct_attr2.Array_name] = AssignmentNode{current_struct_attr2.Asgn_type, current_struct_attr2.Ptrs, false, name + "->" + current_struct_attr2.Array_name, current_struct_attr2.Arr_len}
 				}
 			} else {
 				if is_n_ptr {
-					VARS[name+"."+current_struct_attr2.Array_name] = ArrAssignementNode{current_struct_attr2.Asgn_type, current_struct_attr2.Ptrs, false, name + "." + current_struct_attr2.Array_name, current_struct_attr2.Arr_len}
+					VARS[name+"."+current_struct_attr2.Array_name] = ArrAssignmentNode{current_struct_attr2.Asgn_type, current_struct_attr2.Ptrs, false, name + "." + current_struct_attr2.Array_name, current_struct_attr2.Arr_len}
 				}
 				if is_ptr {
-					VARS[name+"->"+current_struct_attr2.Array_name] = ArrAssignementNode{current_struct_attr2.Asgn_type, current_struct_attr2.Ptrs, false, name + "->" + current_struct_attr2.Array_name, current_struct_attr2.Arr_len}
+					VARS[name+"->"+current_struct_attr2.Array_name] = ArrAssignmentNode{current_struct_attr2.Asgn_type, current_struct_attr2.Ptrs, false, name + "->" + current_struct_attr2.Array_name, current_struct_attr2.Arr_len}
 				}
 			}
 		} else {
@@ -321,8 +321,8 @@ func p_factor() LiteralNode {
 		tok = getName()
 		p_advance()
 		if StringInMap(tok.value, VARS) || StringInSlice(tok.value, var_names) {
-			if reflect.TypeOf(VARS[tok.value]).Name() == "ArrAssignementNode" {
-				comp_t := VARS[tok.value].(ArrAssignementNode)
+			if reflect.TypeOf(VARS[tok.value]).Name() == "ArrAssignmentNode" {
+				comp_t := VARS[tok.value].(ArrAssignmentNode)
 				type_compare(comp_t.Asgn_type)
 
 				if expected_ptrs > 0 && current_token.type_ != TT_LBRK && getToken(1).ln_count != tok.ln_count {
@@ -344,7 +344,7 @@ func p_factor() LiteralNode {
 					NewError("ArrayNotClosed", "A array was assagnid with '[' but no ']' was found. ", CreateErrorLocation(), true)
 				}
 			}
-			comp_t := VARS[tok.value].(AssignemntNode)
+			comp_t := VARS[tok.value].(AssignmentNode)
 			type_compare(comp_t.Asgn_type)
 			if ptrs > comp_t.Ptrs {
 				// is illegal 'cause it's trying to use more ptrs than there is
@@ -384,7 +384,7 @@ func p_factor() LiteralNode {
 			}
 		} else {
 			fmt.Println(tok)
-			NewError("RefferenceError", "The refferenced var, func or struct is not defined", CreateErrorLocation(), true)
+			NewError("referenceError", "The referenced var, func or struct is not defined", CreateErrorLocation(), true)
 		}
 	}
 	p_advance()
@@ -507,7 +507,7 @@ func p_assign(type_ string, glob bool) Node {
 		// checks if the arr expr is closed
 		if current_token.type_ == TT_RBRK {
 			p_advance()
-			var_node := ArrAssignementNode{Asgn_type: type_, Ptrs: ptrs, Array_name: assignement_name.value, Arr_len: arr_len, Global: global}
+			var_node := ArrAssignmentNode{Asgn_type: type_, Ptrs: ptrs, Array_name: assignement_name.value, Arr_len: arr_len, Global: global}
 			VARS[assignement_name.value] = var_node
 			if glob {
 				GLOBALS[assignement_name.value] = var_node
@@ -530,7 +530,7 @@ func p_assign(type_ string, glob bool) Node {
 				var_name := p_expr()
 				if current_token.type_ == TT_RPAREN {
 					p_advance()
-					ret_var := AssignemntNode{Asgn_type: type_, Ptrs: ptrs, Var_name: assignement_name.value, Content: TypeCastNode{Tcast: var_name, Dtype: DataTypeNode{Dtype: type_, Ptrs: ptrs}}}
+					ret_var := AssignmentNode{Asgn_type: type_, Ptrs: ptrs, Var_name: assignement_name.value, Content: TypeCastNode{Tcast: var_name, Dtype: DataTypeNode{Dtype: type_, Ptrs: ptrs}}}
 					VARS[assignement_name.value] = ret_var
 					if glob {
 						GLOBALS[assignement_name.value] = ret_var
@@ -545,7 +545,7 @@ func p_assign(type_ string, glob bool) Node {
 			}
 		} else {
 			content := p_expr()
-			var_node := AssignemntNode{Asgn_type: type_, Ptrs: ptrs, Var_name: assignement_name.value, Content: content, Global: global}
+			var_node := AssignmentNode{Asgn_type: type_, Ptrs: ptrs, Var_name: assignement_name.value, Content: content, Global: global}
 			VARS[assignement_name.value] = var_node
 			if glob {
 				GLOBALS[assignement_name.value] = var_node
@@ -555,7 +555,7 @@ func p_assign(type_ string, glob bool) Node {
 			return var_node
 		}
 	} else {
-		var_node := AssignemntNode{Asgn_type: type_, Ptrs: ptrs, Var_name: assignement_name.value, Content: UniversalNone{}, Global: global}
+		var_node := AssignmentNode{Asgn_type: type_, Ptrs: ptrs, Var_name: assignement_name.value, Content: UniversalNone{}, Global: global}
 		VARS[assignement_name.value] = var_node
 		if glob {
 			GLOBALS[assignement_name.value] = var_node
@@ -564,7 +564,7 @@ func p_assign(type_ string, glob bool) Node {
 		expect_t = false
 		return var_node
 	}
-	return AssignemntNode{}
+	return AssignmentNode{}
 }
 
 // reassigns a variable or calls a function with no return type
@@ -580,21 +580,21 @@ func p_reassign(ptr bool) Node {
 	CURRENT_LN = current_token.ln_count
 	name := getName()
 
-	if StringInMap(name.value, VARS) && reflect.TypeOf(VARS[name.value]).Name() == "AssignemntNode" {
-		ptr_comp := VARS[name.value].(AssignemntNode)
+	if StringInMap(name.value, VARS) && reflect.TypeOf(VARS[name.value]).Name() == "AssignmentNode" {
+		ptr_comp := VARS[name.value].(AssignmentNode)
 		if ptrs == ptr_comp.Ptrs { // checks if the variable is prefixed with all the ptrs it got
 			expected_ptrs = 0 // is possible 'cause basically it's like a normal variable
-		} else if ptrs > VARS[name.value].(AssignemntNode).Ptrs {
+		} else if ptrs > VARS[name.value].(AssignmentNode).Ptrs {
 			// is illegal 'cause it's trying to use more ptrs than there is
 			NewError("ToManyPointersException", "", CreateErrorLocation(), true)
 		} else {
 			expected_ptrs = ptr_comp.Ptrs - ptrs
 		}
-	} else if StringInMap(name.value, VARS) && reflect.TypeOf(VARS[name.value]).Name() == "ArrAssignementNode" {
-		ptr_comp := VARS[name.value].(ArrAssignementNode)
+	} else if StringInMap(name.value, VARS) && reflect.TypeOf(VARS[name.value]).Name() == "ArrAssignmentNode" {
+		ptr_comp := VARS[name.value].(ArrAssignmentNode)
 		if ptrs == ptr_comp.Ptrs { // checks if the variable is prefixed with all the ptrs it got
 			expected_ptrs = 0 // is possible 'cause basically it's like a normal variable
-		} else if ptrs > VARS[name.value].(AssignemntNode).Ptrs {
+		} else if ptrs > VARS[name.value].(AssignmentNode).Ptrs {
 			// is illegal 'cause it's trying to use more ptrs than there is
 			NewError("ToManyPointersException", "", CreateErrorLocation(), true)
 		} else {
@@ -620,7 +620,7 @@ func p_reassign(ptr bool) Node {
 				reassgn_t := current_token.value
 				p_advance()
 				if StringInMap(name.value, VARS) {
-					current_expected_t = VARS[name.value].(ArrAssignementNode).Asgn_type
+					current_expected_t = VARS[name.value].(ArrAssignmentNode).Asgn_type
 					expect_t = true
 				} else {
 					expect_t = false
@@ -628,7 +628,7 @@ func p_reassign(ptr bool) Node {
 				expected_ptrs = prev_expected
 				content = p_expr()
 				expect_t = false
-				return ArrReAssignementNode{Reassgn_t: reassgn_t, Re_type: name.value, Ptrs: ptrs, Arr_idx: arr_idx, Content: content}
+				return ArrReAssignmentNode{Reassgn_t: reassgn_t, Re_type: name.value, Ptrs: ptrs, Arr_idx: arr_idx, Content: content}
 			} else {
 				// make error
 				NewError("", "", "", true)
@@ -640,7 +640,7 @@ func p_reassign(ptr bool) Node {
 	} else if current_token.type_ == TT_REASSGN || current_token.type_ == TT_PLUSEQ || current_token.type_ == TT_MINUSEQ || current_token.type_ == TT_MULEQ || current_token.type_ == TT_DIVEQ {
 		reassgn_t := current_token.value
 		p_advance()
-		current_expected_t = VARS[name.value].(AssignemntNode).Asgn_type
+		current_expected_t = VARS[name.value].(AssignmentNode).Asgn_type
 		expect_t = true
 		content := p_expr()
 		expect_t = false
@@ -750,7 +750,7 @@ func p_mikf() Node {
 						} else if current_token.type_ == TT_DEBUG {
 							code = append(code, DebugNode{})
 						} else {
-							NewError("ParsingError", "A function decleration, struct decleration, variable assignement or refference was expected but not found", CreateErrorLocation(), true)
+							NewError("ParsingError", "A function decleration, struct decleration, variable assignement or reference was expected but not found", CreateErrorLocation(), true)
 						}
 					}
 					p_advance()
@@ -860,7 +860,7 @@ func p_if(elif bool) IfNode {
 					} else if current_token.type_ == TT_DEBUG {
 						code = append(code, DebugNode{})
 					} else {
-						NewError("ParsingError", "A function decleration, struct decleration, variable assignement or refference was expected but not found", CreateErrorLocation(), true)
+						NewError("ParsingError", "A function decleration, struct decleration, variable assignement or reference was expected but not found", CreateErrorLocation(), true)
 					}
 				}
 				p_advance()
@@ -895,7 +895,7 @@ func p_else() ElseNode {
 			} else if current_token.type_ == TT_DEBUG {
 				code = append(code, DebugNode{})
 			} else {
-				NewError("ParsingError", "A function decleration, struct decleration, variable assignement or refference was expected but not found", CreateErrorLocation(), true)
+				NewError("ParsingError", "A function decleration, struct decleration, variable assignement or reference was expected but not found", CreateErrorLocation(), true)
 			}
 		}
 		p_advance()
@@ -931,7 +931,7 @@ func p_while() WhileNode {
 					} else if current_token.type_ == TT_DEBUG {
 						code = append(code, DebugNode{})
 					} else {
-						NewError("ParsingError", "A function decleration, struct decleration, variable assignement or refference was expected but not found", CreateErrorLocation(), true)
+						NewError("ParsingError", "A function decleration, struct decleration, variable assignement or reference was expected but not found", CreateErrorLocation(), true)
 					}
 				}
 				p_advance()

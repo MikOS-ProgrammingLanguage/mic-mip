@@ -1,7 +1,0 @@
-// int
-int i = 10
-int i2 = i + 50
-
-// string
-str i3 = "Star hjakdfglsdkhjfgjhlksdjlhkfgjlhksdlhjkgsldhjkflhjklshjkdflhjklhjsdfgljhjhsdfgljsdljhkfgl"
-str i4 = i3

@@ -1,0 +1,16 @@
+int int_test = 10
+int int_ref_test = int_test
+
+flt flt_test = 10.5
+flt flt_ref_test = flt_test
+
+char char_test = 'A'
+char char_ref_test = char_test
+
+str str_test = "Hello, World!"
+str str_ref_test = str_test
+
+/*
+cock cock_test = 100
+cock cock_ref_test = cock_test
+*/

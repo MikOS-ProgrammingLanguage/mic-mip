@@ -65,9 +65,9 @@ func tconvert_c(t string) string {
 func gen_c(node Node) string {
 	// switch through all first class nodes
 	switch reflect.TypeOf(node).Name() {
-	case "AssignemntNode":
+	case "AssignmentNode":
 		// make assignement
-		cast_val := node.(AssignemntNode)
+		cast_val := node.(AssignmentNode)
 		code_ := tconvert_c(cast_val.Asgn_type)
 		ptr_code := ""
 		var scnd_glob string = ""
@@ -111,7 +111,7 @@ func gen_c(node Node) string {
 		// make reassignement
 		cast_val := node.(ReAssignmentNode)
 		code_ := ""
-		if VARS[cast_val.Re_type].(AssignemntNode).Asgn_type == "str" {
+		if VARS[cast_val.Re_type].(AssignmentNode).Asgn_type == "str" {
 			code_ += "strcpy("
 			if cast_val.Ptrs > 0 {
 				for i := 0; i < cast_val.Ptrs; i++ {
@@ -144,9 +144,9 @@ func gen_c(node Node) string {
 			main_code_arr_gc = append(main_code_arr_gc, code_)
 			return code_
 		}
-	case "ArrAssignementNode":
+	case "ArrAssignmentNode":
 		// make a array assignement
-		cast_val := node.(ArrAssignementNode)
+		cast_val := node.(ArrAssignmentNode)
 		code_ := tconvert_c(cast_val.Asgn_type) + " "
 		for i := 0; i < cast_val.Ptrs; {
 			code_ += "*"
@@ -172,9 +172,9 @@ func gen_c(node Node) string {
 			main_code_arr_gc = append(main_code_arr_gc, code_)
 		}
 		return code_
-	case "ArrReAssignementNode":
+	case "ArrReAssignmentNode":
 		// make a reassignement for a element in an array
-		cast_val := node.(ArrReAssignementNode)
+		cast_val := node.(ArrReAssignmentNode)
 		code_ := ""
 		for i := 0; i < cast_val.Ptrs; i++ {
 			code_ += "*"

@@ -78,7 +78,7 @@ To remove a installed package just type
 
     sudo ./mip -remove <pkg_name>
 
-This will remove the pkg from mik-src. Hence, you can't refference it with
+This will remove the pkg from mik-src. Hence, you can't reference it with
 
     #yoink-src <pkg_name>
 

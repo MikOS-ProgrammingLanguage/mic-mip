@@ -80,21 +80,21 @@ type ReAssignmentNode struct {
 	Ptrs      int
 	Content   LiteralNode
 }
-type AssignemntNode struct {
+type AssignmentNode struct {
 	Asgn_type string
 	Ptrs      int
 	Global    bool
 	Var_name  string
 	Content   LiteralNode
 }
-type ArrReAssignementNode struct {
+type ArrReAssignmentNode struct {
 	Reassgn_t string
 	Re_type   string
 	Ptrs      int
 	Arr_idx   LiteralNode
 	Content   LiteralNode
 }
-type ArrAssignementNode struct {
+type ArrAssignmentNode struct {
 	Asgn_type  string
 	Ptrs       int
 	Global     bool
@@ -262,10 +262,10 @@ func (ret ReturnNode) What_type() string {
 }
 
 // implements is_1_node for Assignement
-func (ass AssignemntNode) Is_1_node() bool {
+func (ass AssignmentNode) Is_1_node() bool {
 	return true
 }
-func (ass AssignemntNode) What_type() string {
+func (ass AssignmentNode) What_type() string {
 	return "AssignementNode"
 }
 
@@ -278,19 +278,19 @@ func (reass ReAssignmentNode) What_type() string {
 }
 
 // implements is_1_node for ArrAssignement
-func (arrassgn ArrAssignementNode) Is_1_node() bool {
+func (arrassgn ArrAssignmentNode) Is_1_node() bool {
 	return true
 }
-func (arrassgn ArrAssignementNode) What_type() string {
-	return "ArrAssignementNode"
+func (arrassgn ArrAssignmentNode) What_type() string {
+	return "ArrAssignmentNode"
 }
 
 // implements is_1_node for ArrReAssignement
-func (arrreassgn ArrReAssignementNode) Is_1_node() bool {
+func (arrreassgn ArrReAssignmentNode) Is_1_node() bool {
 	return true
 }
-func (arrreassgn ArrReAssignementNode) What_type() string {
-	return "ArrReAssignementNode"
+func (arrreassgn ArrReAssignmentNode) What_type() string {
+	return "ArrReAssignmentNode"
 }
 
 // implements is_1_node for function
