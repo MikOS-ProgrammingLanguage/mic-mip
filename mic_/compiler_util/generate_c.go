@@ -98,7 +98,9 @@ func gen_c(node Node) string {
 			return scnd_glob
 		} else if in_func_gc {
 			code_ += ";\n\t"
-			*none_main_code_gc += code_
+			//*none_main_code_gc += code_
+			fmt.Println(*none_main_code_gc, "-> none main <-")
+			fmt.Println(code_, "-> code <-")
 			return code_
 		} else if arg_parse_gc {
 			return code_
@@ -164,7 +166,7 @@ func gen_c(node Node) string {
 			none_main_code_gc = &code_
 		} else if in_func_gc {
 			code_ += ";\n\t"
-			*none_main_code_gc += code_
+			//*none_main_code_gc += code_
 			return code_
 		} else if arg_parse_gc {
 			return code_
@@ -318,7 +320,7 @@ func gen_c(node Node) string {
 		}
 		code += cast_val.var_name + ";\n\t"
 		if in_func_gc {
-			*none_main_code_gc += code
+			//*none_main_code_gc += code
 			return code
 		} else {
 			main_code_arr_gc = append(main_code_arr_gc, code)
@@ -341,7 +343,7 @@ func gen_c(node Node) string {
 		code_ += "\t}\n"
 		main_code_arr_gc = current_main_gc
 		if in_func_gc {
-			*none_main_code_gc += code_
+			//*none_main_code_gc += code_
 			return code_
 		} else {
 			main_code_arr_gc = append(main_code_arr_gc, code_)
@@ -358,7 +360,7 @@ func gen_c(node Node) string {
 		code_ += "\t}\n"
 		main_code_arr_gc = current_main_gc
 		if in_func_gc {
-			*none_main_code_gc += code_
+			//*none_main_code_gc += code_
 			return code_
 		} else {
 			main_code_arr_gc = append(main_code_arr_gc, code_)
@@ -376,7 +378,7 @@ func gen_c(node Node) string {
 		code_ += "\t}\n"
 		main_code_arr_gc = current_main_gc
 		if in_func_gc {
-			*none_main_code_gc += code_
+			//*none_main_code_gc += code_
 			return code_
 		} else {
 			main_code_arr_gc = append(main_code_arr_gc, code_)
@@ -390,7 +392,7 @@ func gen_c(node Node) string {
 			code_ += ";\n"
 
 			if in_func_gc {
-				*none_main_code_gc += code_
+				//*none_main_code_gc += code_
 				return code_
 			} else {
 				main_code_arr_gc = append(main_code_arr_gc, code_)
@@ -427,7 +429,7 @@ func GenerateC(ast_ *RootNode, out_pth, inptPtr string, conf jsonconf.Config) bo
 		}
 		*main_code_gc += "}"
 	}
-	data := *global_vars_code_gc + "inline char* strcpy(char* dest, const char* src) {do {*dest++ = *src++;} while (*src != 0);return 0;} // strcpy\n" + *none_main_code_gc + *main_code_gc
+	data := *global_vars_code_gc + "static inline char* strcpy(char* dest, const char* src) {do {*dest++ = *src++;} while (*src != 0);return 0;} // strcpy\n" + *none_main_code_gc + *main_code_gc
 	err := os.WriteFile(out_pth, []byte(data), 0644)
 	if err != nil {
 		panic(err)

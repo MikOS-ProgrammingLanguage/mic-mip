@@ -55,7 +55,6 @@ func Parse(Tokens *[]Token, Func_names, Var_names, ign_sections []string) RootNo
 	var_names = Var_names
 	p_advance()
 
-	fmt.Println(current_token)
 	for !is_eot {
 		if StringInSlice(current_token.section, ign_sections) {
 			if current_token.type_ == TT_ID || current_token.type_ == TT_MUL || current_token.type_ == TT_DOC {
@@ -80,6 +79,7 @@ func Parse(Tokens *[]Token, Func_names, Var_names, ign_sections []string) RootNo
 			NewError("ParsingError", "A function decleration, struct decleration, variable assignement or reference was expected but not found", CreateErrorLocation(), true)
 		}
 	}
+	fmt.Println(root_node.Nodes)
 	return root_node
 }
 
