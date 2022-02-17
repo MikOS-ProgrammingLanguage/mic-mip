@@ -39,6 +39,15 @@ func CreateErrorLocation() string {
 	return fmt.Sprintf("%s at ln %d -> %s", current_token.section, current_token.ln_count-1, current_ln_str)
 }
 
+func switch_asgn(i string) string {
+	switch i {
+	case "cock":
+		return "int"
+	default:
+		return i
+	}
+}
+
 // parse that shit wohooooooo
 func Parse(Tokens *[]Token, Func_names, Var_names, ign_sections []string) RootNode {
 	tokens = *Tokens
@@ -620,7 +629,7 @@ func p_reassign(ptr bool) Node {
 				reassgn_t := current_token.value
 				p_advance()
 				if StringInMap(name.value, VARS) {
-					current_expected_t = VARS[name.value].(ArrAssignmentNode).Asgn_type
+					current_expected_t = switch_asgn(VARS[name.value].(ArrAssignmentNode).Asgn_type)
 					expect_t = true
 				} else {
 					expect_t = false
@@ -640,7 +649,7 @@ func p_reassign(ptr bool) Node {
 	} else if current_token.type_ == TT_REASSGN || current_token.type_ == TT_PLUSEQ || current_token.type_ == TT_MINUSEQ || current_token.type_ == TT_MULEQ || current_token.type_ == TT_DIVEQ {
 		reassgn_t := current_token.value
 		p_advance()
-		current_expected_t = VARS[name.value].(AssignmentNode).Asgn_type
+		current_expected_t = switch_asgn(VARS[name.value].(AssignmentNode).Asgn_type)
 		expect_t = true
 		content := p_expr()
 		expect_t = false
@@ -977,7 +986,7 @@ func mkID() Node {
 		if func_on && expect_ret {
 			p_advance()
 			CURRENT_LN = current_token.ln_count
-			current_expected_t = func_ret_expect
+			current_expected_t = switch_asgn(func_ret_expect)
 			expect_t = true
 			ret := p_expr()
 			expect_ret = false

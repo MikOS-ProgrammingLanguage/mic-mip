@@ -1,7 +1,6 @@
 package compiler_util
 
 import (
-	"fmt"
 	jsonconf "mik/mic_/json_conf"
 )
 
@@ -9,7 +8,6 @@ var SUCCESS bool = true
 var FAILURE bool = false
 
 func Generate(ast *RootNode, target, out_pth, inptPtr string, conf jsonconf.Config) bool {
-	fmt.Println(target)
 	switch target {
 	case "c":
 		return GenerateC(ast, out_pth, inptPtr, conf)

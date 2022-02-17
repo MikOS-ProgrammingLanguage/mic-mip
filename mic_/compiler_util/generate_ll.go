@@ -3,7 +3,7 @@ package compiler_util
 import (
 	"fmt"
 	"os"
-	"os/exec"
+	//"os/exec"
 	"reflect"
 	"strconv"
 	"strings"
@@ -132,7 +132,8 @@ func GenerateAsm(ast_ *RootNode, out_pth string) bool {
 		panic(err)
 	}
 
-	_, _ = exec.Command("llc", "-filetype=obj", out_pth+".ll", "-o", out_pth).CombinedOutput()
+	//_, _ = exec.Command("clang", out_pth+".ll", "-o", out_pth+".o").CombinedOutput()
+	//_, _ = exec.Command("llc", "-filetype=obj", out_pth+".ll", "-o", out_pth).CombinedOutput()
 	//_, _ = exec.Command("rm", "-rf", out_pth+".ll").CombinedOutput()
 
 	return SUCCESS
@@ -265,7 +266,92 @@ func generate_asm(node Node) string {
 		VARS_LLVM = append(VARS_LLVM, node_cast.Var_name)
 		return ""
 	case "ReAssignmentNode":
-		break
+		node_cast := node.(ReAssignmentNode)
+		
+		switch node_cast.Reassgn_t {
+		case "+=":
+			// load self (%0 = load i32* self)
+			// %1 = add i32 %0, expr_erg
+			// store %1, i32* self
+			converted_type := type_convert_llvm(VARS[node_cast.Re_type].(AssignmentNode).Asgn_type)
+
+			*out_code += fmt.Sprintf("\t%%%d = load %s, %s%s %%%s %s\n", current_function_variable_count, converted_type, converted_type, get_ptrs(VARS[node_cast.Re_type].(AssignmentNode).Ptrs+1), VARS[node_cast.Re_type].(AssignmentNode).Var_name, get_align(VARS[node_cast.Re_type].(AssignmentNode).Ptrs+current_ptr_offset, converted_type))
+			var_pos := current_function_variable_count
+			current_function_variable_count++
+
+			code, is_req := generate_second_and_third_class_node(node_cast.Content, node_cast.Re_type)
+			if is_req {
+				*out_code += fmt.Sprintf("\t%%%d = %sadd %s %s, %%%d\n", current_function_variable_count, operator_prefix_cast_llvm(converted_type, "add"), converted_type, code, var_pos)
+				current_function_variable_count++
+				//*out_code += fmt.Sprintf("\tstore %s %%%d, %s%s %%%s %s\n", converted_type, current_function_variable_count-1, converted_type, get_ptrs(node_cast.Ptrs+1), VARS[node_cast.Re_type].(AssignmentNode).Var_name, get_align(node_cast.Ptrs, VARS[node_cast.Re_type].(AssignmentNode).Asgn_type))
+			} else {
+				*out_code += fmt.Sprintf("\t%%%d = %sadd %s %%%d, %%%d\n", current_function_variable_count, operator_prefix_cast_llvm(converted_type, "add"), converted_type, current_function_variable_count-1, var_pos)
+				current_function_variable_count++
+				//*out_code += fmt.Sprintf("\tstore %s %s, %s%s %%%s %s\n", converted_type, code, converted_type, get_ptrs(node_cast.Ptrs+1), VARS[node_cast.Re_type].(AssignmentNode).Var_name, get_align(node_cast.Ptrs, VARS[node_cast.Re_type].(AssignmentNode).Asgn_type))
+			}
+			*out_code += fmt.Sprintf("\tstore %s %%%d, %s%s %%%s %s\n", converted_type, current_function_variable_count-1, converted_type, get_ptrs(node_cast.Ptrs+1), VARS[node_cast.Re_type].(AssignmentNode).Var_name, get_align(node_cast.Ptrs, VARS[node_cast.Re_type].(AssignmentNode).Asgn_type))
+		case "-=":
+			// load self (%0 = load i32* self)
+			// %1 = sub i32 %0, expr_erg
+			// store %1, i32* self
+			converted_type := type_convert_llvm(VARS[node_cast.Re_type].(AssignmentNode).Asgn_type)
+
+			*out_code += fmt.Sprintf("\t%%%d = load %s, %s%s %%%s %s\n", current_function_variable_count, converted_type, converted_type, get_ptrs(VARS[node_cast.Re_type].(AssignmentNode).Ptrs+1), VARS[node_cast.Re_type].(AssignmentNode).Var_name, get_align(VARS[node_cast.Re_type].(AssignmentNode).Ptrs+current_ptr_offset, converted_type))
+			var_pos := current_function_variable_count
+			current_function_variable_count++
+
+			code, is_req := generate_second_and_third_class_node(node_cast.Content, node_cast.Re_type)
+			if is_req {
+				*out_code += fmt.Sprintf("\t%%%d = %ssub %s %s, %%%d\n", current_function_variable_count, operator_prefix_cast_llvm(converted_type, "sub"), converted_type, code, var_pos)
+				current_function_variable_count++
+				//*out_code += fmt.Sprintf("\tstore %s %%%d, %s%s %%%s %s\n", converted_type, current_function_variable_count-1, converted_type, get_ptrs(node_cast.Ptrs+1), VARS[node_cast.Re_type].(AssignmentNode).Var_name, get_align(node_cast.Ptrs, VARS[node_cast.Re_type].(AssignmentNode).Asgn_type))
+			} else {
+				*out_code += fmt.Sprintf("\t%%%d = %ssub %s %%%d, %%%d\n", current_function_variable_count, operator_prefix_cast_llvm(converted_type, "sub"), converted_type, current_function_variable_count-1, var_pos)
+				current_function_variable_count++
+				//*out_code += fmt.Sprintf("\tstore %s %s, %s%s %%%s %s\n", converted_type, code, converted_type, get_ptrs(node_cast.Ptrs+1), VARS[node_cast.Re_type].(AssignmentNode).Var_name, get_align(node_cast.Ptrs, VARS[node_cast.Re_type].(AssignmentNode).Asgn_type))
+			}
+			*out_code += fmt.Sprintf("\tstore %s %%%d, %s%s %%%s %s\n", converted_type, current_function_variable_count-1, converted_type, get_ptrs(node_cast.Ptrs+1), VARS[node_cast.Re_type].(AssignmentNode).Var_name, get_align(node_cast.Ptrs, VARS[node_cast.Re_type].(AssignmentNode).Asgn_type))
+		case "*=":
+			converted_type := type_convert_llvm(VARS[node_cast.Re_type].(AssignmentNode).Asgn_type)
+
+			*out_code += fmt.Sprintf("\t%%%d = load %s, %s%s %%%s %s\n", current_function_variable_count, converted_type, converted_type, get_ptrs(VARS[node_cast.Re_type].(AssignmentNode).Ptrs+1), VARS[node_cast.Re_type].(AssignmentNode).Var_name, get_align(VARS[node_cast.Re_type].(AssignmentNode).Ptrs+current_ptr_offset, converted_type))
+			var_pos := current_function_variable_count
+			current_function_variable_count++
+
+			code, is_req := generate_second_and_third_class_node(node_cast.Content, node_cast.Re_type)
+			if is_req {
+				*out_code += fmt.Sprintf("\t%%%d = %smul %s %s, %%%d\n", current_function_variable_count, operator_prefix_cast_llvm(converted_type, "mul"), converted_type, code, var_pos)
+				current_function_variable_count++
+				//*out_code += fmt.Sprintf("\tstore %s %%%d, %s%s %%%s %s\n", converted_type, current_function_variable_count-1, converted_type, get_ptrs(node_cast.Ptrs+1), VARS[node_cast.Re_type].(AssignmentNode).Var_name, get_align(node_cast.Ptrs, VARS[node_cast.Re_type].(AssignmentNode).Asgn_type))
+			} else {
+				*out_code += fmt.Sprintf("\t%%%d = %smul %s %%%d, %%%d\n", current_function_variable_count, operator_prefix_cast_llvm(converted_type, "mul"), converted_type, current_function_variable_count-1, var_pos)
+				current_function_variable_count++
+				//*out_code += fmt.Sprintf("\tstore %s %s, %s%s %%%s %s\n", converted_type, code, converted_type, get_ptrs(node_cast.Ptrs+1), VARS[node_cast.Re_type].(AssignmentNode).Var_name, get_align(node_cast.Ptrs, VARS[node_cast.Re_type].(AssignmentNode).Asgn_type))
+			}
+			*out_code += fmt.Sprintf("\tstore %s %%%d, %s%s %%%s %s\n", converted_type, current_function_variable_count-1, converted_type, get_ptrs(node_cast.Ptrs+1), VARS[node_cast.Re_type].(AssignmentNode).Var_name, get_align(node_cast.Ptrs, VARS[node_cast.Re_type].(AssignmentNode).Asgn_type))
+		case "/*":
+			converted_type := type_convert_llvm(VARS[node_cast.Re_type].(AssignmentNode).Asgn_type)
+
+			*out_code += fmt.Sprintf("\t%%%d = load %s, %s%s %%%s %s\n", current_function_variable_count, converted_type, converted_type, get_ptrs(VARS[node_cast.Re_type].(AssignmentNode).Ptrs+1), VARS[node_cast.Re_type].(AssignmentNode).Var_name, get_align(VARS[node_cast.Re_type].(AssignmentNode).Ptrs+current_ptr_offset, converted_type))
+			var_pos := current_function_variable_count
+			current_function_variable_count++
+
+			code, is_req := generate_second_and_third_class_node(node_cast.Content, node_cast.Re_type)
+			if is_req {
+				*out_code += fmt.Sprintf("\t%%%d = %sdiv %s %s, %%%d\n", current_function_variable_count, operator_prefix_cast_llvm(converted_type, "div"), converted_type, code, var_pos)
+				current_function_variable_count++
+				//*out_code += fmt.Sprintf("\tstore %s %%%d, %s%s %%%s %s\n", converted_type, current_function_variable_count-1, converted_type, get_ptrs(node_cast.Ptrs+1), VARS[node_cast.Re_type].(AssignmentNode).Var_name, get_align(node_cast.Ptrs, VARS[node_cast.Re_type].(AssignmentNode).Asgn_type))
+			} else {
+				*out_code += fmt.Sprintf("\t%%%d = %sdiv %s %%%d, %%%d\n", current_function_variable_count, operator_prefix_cast_llvm(converted_type, "div"), converted_type, current_function_variable_count-1, var_pos)
+				current_function_variable_count++
+				//*out_code += fmt.Sprintf("\tstore %s %s, %s%s %%%s %s\n", converted_type, code, converted_type, get_ptrs(node_cast.Ptrs+1), VARS[node_cast.Re_type].(AssignmentNode).Var_name, get_align(node_cast.Ptrs, VARS[node_cast.Re_type].(AssignmentNode).Asgn_type))
+			}
+			*out_code += fmt.Sprintf("\tstore %s %%%d, %s%s %%%s %s\n", converted_type, current_function_variable_count-1, converted_type, get_ptrs(node_cast.Ptrs+1), VARS[node_cast.Re_type].(AssignmentNode).Var_name, get_align(node_cast.Ptrs, VARS[node_cast.Re_type].(AssignmentNode).Asgn_type))
+		case "?=":
+			break
+		}
+	case "IfNode":
+		
 	default:
 		break
 	}

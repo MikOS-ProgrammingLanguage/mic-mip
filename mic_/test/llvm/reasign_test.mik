@@ -1,0 +1,20 @@
+int test_int = 10
+test_int += 10
+test_int -= 10
+test_int *= 10
+test_int /= 10
+test_int ?= 100 + 50
+
+flt test_flt = 10.5
+test_flt += 10.5
+test_flt -= 10.5
+test_flt *= 10.5
+test_flt /= 10.5
+test_flt ?= 100.5 + 49.5
+
+cock test_cock = 1000
+test_cock += 1000
+test_cock -= 1000
+test_cock *= 1000
+test_cock /= 1000
+test_cock ?= 1000 + 500
