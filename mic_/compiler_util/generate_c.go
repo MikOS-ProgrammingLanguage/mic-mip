@@ -262,7 +262,7 @@ func gen_c(node Node) string {
 			code_ += gen_c(temp)
 		}
 		arg_parse_gc = false
-		code_ += ")" + " { __asm__ __volatile__ (" + cast_val.Asm_block + ");}\n"
+		code_ += ")" + " { __asm__ __volatile__ (\"" + cast_val.Asm_block + "\");}\n"
 		*none_main_code_gc += code_
 		return code_
 	case "StructNode":
