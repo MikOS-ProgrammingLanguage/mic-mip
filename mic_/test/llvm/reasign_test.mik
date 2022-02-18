@@ -3,7 +3,7 @@ test_int += 10
 test_int -= 10
 test_int *= 10
 test_int /= 10
-test_int ?= 100 + 50
+test_int ?= 100
 
 flt test_flt = 10.5
 test_flt += 10.5

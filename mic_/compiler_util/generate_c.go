@@ -99,8 +99,6 @@ func gen_c(node Node) string {
 		} else if in_func_gc {
 			code_ += ";\n\t"
 			//*none_main_code_gc += code_
-			fmt.Println(*none_main_code_gc, "-> none main <-")
-			fmt.Println(code_, "-> code <-")
 			return code_
 		} else if arg_parse_gc {
 			return code_

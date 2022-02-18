@@ -2,23 +2,29 @@
 int iint = 100
 int iintn
 int* iptrint
+//*iptrint ?= 100
 
 // strings
 str istr = "Starship my nutz lol\n"
 str istrn
 str* iptrstr
+istrn ?= "Hello\n"
+//*iptrstr ?= "Hello\n" // doesnt yet work
 
 // float
 flt iflt = 10.5
 flt ifltn
 flt* iptrflt
+//*iptrflt ?= 10.5
 
 // char
 char ichar = 'A'
 char icharn
 char* iptrchar
+//*iptrchar ?= 'A'
 
 // cock
 cock icock = 100
 cock icockn
 cock* iptrcock
+//*iptrcock ?= 100

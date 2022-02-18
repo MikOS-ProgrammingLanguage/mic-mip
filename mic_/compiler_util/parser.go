@@ -79,7 +79,6 @@ func Parse(Tokens *[]Token, Func_names, Var_names, ign_sections []string) RootNo
 			NewError("ParsingError", "A function decleration, struct decleration, variable assignement or reference was expected but not found", CreateErrorLocation(), true)
 		}
 	}
-	fmt.Println(root_node.Nodes)
 	return root_node
 }
 
@@ -354,7 +353,7 @@ func p_factor() LiteralNode {
 				}
 			}
 			comp_t := VARS[tok.value].(AssignmentNode)
-			type_compare(comp_t.Asgn_type)
+			type_compare(switch_asgn(comp_t.Asgn_type))
 			if ptrs > comp_t.Ptrs {
 				// is illegal 'cause it's trying to use more ptrs than there is
 				NewError("ToManyPointersException", "", CreateErrorLocation(), true)
@@ -372,9 +371,9 @@ func p_factor() LiteralNode {
 			if StringInMap(tok.value, FUNCTIONS) {
 				switch reflect.TypeOf(FUNCTIONS[call_name]).Name() {
 				case "FunctionNode":
-					type_compare(FUNCTIONS[call_name].(FunctionNode).Ret_type)
+					type_compare(switch_asgn(FUNCTIONS[call_name].(FunctionNode).Ret_type))
 				case "AsmFunctionNode":
-					type_compare(FUNCTIONS[call_name].(AsmFunctionNode).Ret_type)
+					type_compare(switch_asgn(FUNCTIONS[call_name].(AsmFunctionNode).Ret_type))
 				default:
 					break
 				}
